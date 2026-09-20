@@ -1,48 +1,32 @@
 import { UserRole, UserProfile } from './types';
 
-export interface AuthorizedAccount {
-  email: string;
-  name: string;
+export interface RoleAccount {
   role: UserRole;
+  name: string;
   pin: string;
 }
 
-// 4 Akun Resmi Pengguna Internal SaaS Keuangan Laundry
-export const AUTHORIZED_ACCOUNTS: AuthorizedAccount[] = [
+// 2 Peran Resmi SaaS Keuangan Trio R Healthy Laundry
+export const AUTHORIZED_ROLES: RoleAccount[] = [
   {
-    email: 'investor1@gmail.com',
-    name: 'Investor 1 (Utama)',
     role: 'investor',
+    name: 'Investor',
     pin: '1234',
   },
   {
-    email: 'investor2@gmail.com',
-    name: 'Investor 2 (Pendamping)',
-    role: 'investor',
-    pin: '1234',
-  },
-  {
-    email: 'pengelola1@gmail.com',
-    name: 'Pengelola 1 (Shift Pagi)',
     role: 'pengelola',
-    pin: '1234',
-  },
-  {
-    email: 'pengelola2@gmail.com',
-    name: 'Pengelola 2 (Shift Sore)',
-    role: 'pengelola',
+    name: 'Pengelola',
     pin: '1234',
   },
 ];
 
-export function validateLogin(email: string, pin: string): { success: boolean; user?: UserProfile; message?: string } {
-  const cleanEmail = email.trim().toLowerCase();
-  const found = AUTHORIZED_ACCOUNTS.find((acc) => acc.email.toLowerCase() === cleanEmail);
+export function validateRoleLogin(roleInput: UserRole, pin: string): { success: boolean; user?: UserProfile; message?: string } {
+  const found = AUTHORIZED_ROLES.find((r) => r.role === roleInput);
 
   if (!found) {
     return {
       success: false,
-      message: 'Akses Ditolak. Email tidak terdaftar dalam 4 pengguna internal SaaS.',
+      message: 'Peran tidak valid. Silakan pilih Investor atau Pengelola.',
     };
   }
 
@@ -54,8 +38,8 @@ export function validateLogin(email: string, pin: string): { success: boolean; u
   }
 
   const userProfile: UserProfile = {
-    id: `user-${found.email}`,
-    name: found.name,
+    id: `user-${found.role}`,
+    name: found.role === 'investor' ? 'Investor' : 'Pengelola',
     role: found.role,
     tenant_id: 'tenant-1',
   };
