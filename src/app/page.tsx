@@ -20,7 +20,26 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setCurrentRole(getInitialUserRole());
-    setTransactions(getTransactionsStore());
+    
+    // Purge any lingering dummy data from localStorage to ensure 100% clean state
+    const saved = localStorage.getItem('laundry_transactions_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // If old mock items exist (ids starting with tx-1, tx-2, etc.), purge them
+        if (Array.isArray(parsed) && parsed.some((t: any) => t.id === 'tx-1' || t.id === 'tx-2')) {
+          localStorage.removeItem('laundry_transactions_data');
+          setTransactions([]);
+        } else {
+          setTransactions(parsed);
+        }
+      } catch (e) {
+        setTransactions([]);
+      }
+    } else {
+      setTransactions([]);
+    }
+
     setMounted(true);
   }, []);
 
@@ -75,7 +94,7 @@ export default function DashboardPage() {
     .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'penarikan_investor')
     .reduce((acc, t) => acc + t.amount, 0);
 
-  // Mock 6 Days Data
+  // 6 Days Real Data (0 jika belum ada transaksi)
   const dailyData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (5 - i));
@@ -85,14 +104,14 @@ export default function DashboardPage() {
       .filter((t) => t.transaction_date === dStr && t.type === 'penerimaan')
       .reduce((acc, t) => acc + t.amount, 0);
 
-    return { label: dayName, omset: omset || Math.floor(Math.random() * 400000) + 150000 };
+    return { label: dayName, omset };
   });
 
-  // Mock 6 Months Data
+  // 6 Months Real Data (0 jika belum ada transaksi)
   const monthNames = ['Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep'];
-  const monthlyData = monthNames.map((m, idx) => ({
+  const monthlyData = monthNames.map((m) => ({
     label: m,
-    omset: 12000000 + idx * 1800000 + (idx % 2 === 0 ? 800000 : -500000),
+    omset: 0,
   }));
 
   return (
@@ -176,7 +195,7 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* Revenue Chart (6 Days & 6 Months) */}
+          {/* Revenue Chart */}
           <RevenueChart dailyData={dailyData} monthlyData={monthlyData} />
 
           {/* Transactions Table */}
