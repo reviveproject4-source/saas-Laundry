@@ -7,7 +7,7 @@ import { Lock, KeyRound, ShieldCheck, UserCheck, ArrowRight } from 'lucide-react
 
 export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('pengelola');
-  const [pin, setPin] = useState<string>('1234');
+  const [pin, setPin] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -19,15 +19,6 @@ export default function LoginPage() {
       window.location.href = '/';
     } else {
       setErrorMessage(res.message || 'Login gagal');
-    }
-  };
-
-  const handleQuickLogin = (role: UserRole) => {
-    setSelectedRole(role);
-    setPin('1234');
-    const res = validateRoleLogin(role, '1234');
-    if (res.success) {
-      window.location.href = '/';
     }
   };
 
@@ -55,8 +46,8 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Form Login */}
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
+        {/* Form Login Tunggal */}
+        <form onSubmit={handleLoginSubmit} className="space-y-5">
           
           {/* Role Selector */}
           <div>
@@ -96,7 +87,7 @@ export default function LoginPage() {
             <div className="relative">
               <input
                 type="password"
-                placeholder="Masukkan PIN 1234"
+                placeholder="Masukkan PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 required
@@ -115,31 +106,6 @@ export default function LoginPage() {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        {/* 1-Click Quick Login */}
-        <div className="pt-3 border-t border-slate-100 space-y-2">
-          <span className="block text-[10px] font-bold text-slate-400 text-center uppercase tracking-wider">
-            Atau Klik 1-Kali Masuk Langsung:
-          </span>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleQuickLogin('pengelola')}
-              className="flex items-center justify-center space-x-2 py-3 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs rounded-xl border border-emerald-200 transition"
-            >
-              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Masuk Pengelola</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickLogin('investor')}
-              className="flex items-center justify-center space-x-2 py-3 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl border border-amber-200 transition"
-            >
-              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Masuk Investor</span>
-            </button>
-          </div>
-        </div>
 
         {/* Security Note */}
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-2 text-[11px] text-slate-500">
