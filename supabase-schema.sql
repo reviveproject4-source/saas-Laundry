@@ -54,15 +54,28 @@ ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 
 -- HELPER FUNCTION: Ambil tenant_id milik authenticated user dari public.profiles
 CREATE OR REPLACE FUNCTION public.get_auth_user_tenant_id()
-RETURNS UUID AS $$
+RETURNS UUID 
+LANGUAGE sql 
+STABLE 
+SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT tenant_id FROM public.profiles WHERE id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$;
 
 -- HELPER FUNCTION: Ambil role milik authenticated user dari public.profiles
 CREATE OR REPLACE FUNCTION public.get_auth_user_role()
-RETURNS VARCHAR AS $$
+RETURNS VARCHAR 
+LANGUAGE sql 
+STABLE 
+SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_auth_user_tenant_id() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_auth_user_role() TO authenticated;
 
 -- 4. RLS POLICIES FOR PROFILES (Dilarang ubah tenant_id atau role dari client)
 DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;

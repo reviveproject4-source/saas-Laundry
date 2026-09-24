@@ -8,22 +8,49 @@ export async function signInWithEmailPassword(email: string, password: string): 
       return { success: false, message: 'Silakan isi email dan kata sandi Anda.' };
     }
 
-    // Autentikasi murni Supabase Auth (Tanpa auto-signup & tanpa modifikasi password)
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // 1. Autentikasi murni Supabase Auth (Tanpa auto-signup & tanpa modifikasi password)
+    const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
       email: cleanEmail,
       password: password,
     });
 
-    if (error) {
-      return { success: false, message: error.message };
+    if (authErr) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[Diagnostic Auth Error]:', authErr.message);
+      }
+      return { success: false, message: authErr.message };
     }
 
-    if (!data.session) {
+    if (!authData.session) {
       return { success: false, message: 'Gagal mendapatkan sesi autentikasi.' };
+    }
+
+    // 2. Verifikasi Profile & Tenant di Database Supabase
+    const { profile, tenant, error: profileTenantErr } = await getCurrentAuthUser();
+
+    if (profileTenantErr && process.env.NODE_ENV !== 'production') {
+      console.error('[Diagnostic Profile/Tenant Error]:', profileTenantErr);
+    }
+
+    if (!profile) {
+      return {
+        success: false,
+        message: 'Akun berhasil login, tetapi profile belum terdaftar.',
+      };
+    }
+
+    if (!tenant) {
+      return {
+        success: false,
+        message: 'Akun berhasil login, tetapi tenant belum terdaftar.',
+      };
     }
 
     return { success: true };
   } catch (err: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[Diagnostic Exception]:', err.message);
+    }
     return { success: false, message: err.message || 'Terjadi kesalahan saat autentikasi.' };
   }
 }
