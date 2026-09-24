@@ -151,21 +151,32 @@ CREATE POLICY "Transactions Tenant Delete" ON public.transactions
     USING (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());
 
 -- ====================================================================
--- 7. PRODUCTION SEEDING (PRODUCTION TENANT SEED)
--- User Auth WAJIB dibuat melalui Supabase Dashboard UI (Authentication -> Users -> Add User).
--- Password dibuat manual oleh administrator dan TIDAK disimpan di repository.
--- Setelah User Auth dibuat, hubungkan ke public.profiles via SQL berikut:
---
--- INSERT INTO public.profiles (id, tenant_id, full_name, role)
--- VALUES 
---   ('<UUID_AUTH_USER_PENGELOLA>', '<UUID_TENANT>', 'Pengelola Trio R', 'pengelola'),
---   ('<UUID_AUTH_USER_INVESTOR>', '<UUID_TENANT>', 'Investor Trio R', 'investor')
--- ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role, full_name = EXCLUDED.full_name;
+-- 7. PRODUCTION PROVISIONING (TENANT & PROFILES FOR AUTH USERS)
 -- ====================================================================
+DO $$
+DECLARE
+    v_tenant_id UUID;
+BEGIN
+    -- 1. Inisialisasi Tenant Single Production (gen_random_uuid)
+    SELECT id INTO v_tenant_id FROM public.tenants WHERE name = 'Trio R Healthy Laundry' LIMIT 1;
+    IF v_tenant_id IS NULL THEN
+        v_tenant_id := gen_random_uuid();
+        INSERT INTO public.tenants (id, name, address, phone, monthly_deposit_target)
+        VALUES (v_tenant_id, 'Trio R Healthy Laundry', 'Jl. Utama No. 1, Jakarta', '081234567890', 10000000.00);
+    END IF;
 
--- Seed Production Tenant (Menggunakan gen_random_uuid)
-INSERT INTO public.tenants (id, name, address, phone, monthly_deposit_target)
-SELECT gen_random_uuid(), 'Trio R Healthy Laundry', 'Jl. Utama No. 1, Jakarta', '081234567890', 10000000.00
-WHERE NOT EXISTS (SELECT 1 FROM public.tenants WHERE name = 'Trio R Healthy Laundry');
+    -- 2. Profile Pengelola (Auth UUID: 6ff8d81a-2636-411b-804e-e5cdb8d18e6e)
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    VALUES ('6ff8d81a-2636-411b-804e-e5cdb8d18e6e', v_tenant_id, 'Pengelola Trio R', 'pengelola')
+    ON CONFLICT (id) DO UPDATE 
+    SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role, full_name = EXCLUDED.full_name;
+
+    -- 3. Profile Investor (Auth UUID: 1c8b77a6-3ad1-44bb-8b7f-8308650ca933)
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    VALUES ('1c8b77a6-3ad1-44bb-8b7f-8308650ca933', v_tenant_id, 'Investor Trio R', 'investor')
+    ON CONFLICT (id) DO UPDATE 
+    SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role, full_name = EXCLUDED.full_name;
+END $$;
+
 
 
