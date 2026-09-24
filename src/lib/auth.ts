@@ -3,22 +3,49 @@ import { UserProfile, TenantProfile, UserRole } from './types';
 
 export async function signInWithEmailPassword(email: string, password: string): Promise<{ success: boolean; message?: string }> {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+    const cleanEmail = email.trim();
+
+    // 1. Coba login ke Supabase Auth
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
       password,
     });
 
-    if (error) {
-      return { success: false, message: error.message };
+    if (!signInError && signInData.session) {
+      return { success: true };
     }
 
-    if (!data.session) {
-      return { success: false, message: 'Gagal mendapatkan sesi autentikasi.' };
+    // 2. Jika akun belum terdaftar di Supabase Auth, lakukan auto-signUp instan
+    if (signInError && (signInError.message.includes('Invalid login credentials') || signInError.status === 400 || signInError.message.includes('invalid'))) {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+      });
+
+      if (!signUpError && signUpData.session) {
+        return { success: true };
+      }
+
+      // Jika pendaftaran berhasil tetapi butuh login ulang
+      if (!signUpError && signUpData.user) {
+        const { data: retrySignIn, error: retryErr } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+        if (!retryErr && retrySignIn.session) {
+          return { success: true };
+        }
+      }
+
+      if (signUpError) {
+        return { success: false, message: `Login Gagal: ${signUpError.message}` };
+      }
     }
 
-    return { success: true };
+    return { success: false, message: signInError?.message || 'Kredensial tidak valid. Periksa kembali email & password.' };
   } catch (err: any) {
-    return { success: false, message: err.message || 'Terjadi kesalahan saat login.' };
+    return { success: false, message: err.message || 'Terjadi kesalahan saat autentikasi.' };
   }
 }
 
@@ -49,7 +76,7 @@ export async function getCurrentAuthUser(): Promise<{
 
     let profile: UserProfile | null = profileData;
 
-    // Fallback: If user exists in Auth but has no profile row yet, auto-provision profile
+    // Auto-provision profile jika user baru di-signup
     if (!profile) {
       const defaultRole: UserRole = userEmail.toLowerCase().includes('investor') ? 'investor' : 'pengelola';
       const defaultTenantId = '00000000-0000-0000-0000-000000000001';
@@ -57,7 +84,7 @@ export async function getCurrentAuthUser(): Promise<{
       const newProfile: UserProfile = {
         id: userId,
         tenant_id: defaultTenantId,
-        full_name: userEmail.split('@')[0] || 'Pengguna Laundry',
+        full_name: userEmail.split('@')[0] || (defaultRole === 'investor' ? 'Investor' : 'Pengelola'),
         role: defaultRole,
         email: userEmail,
       };
@@ -96,7 +123,6 @@ export async function getCurrentAuthUser(): Promise<{
       }
     }
 
-    // Default tenant fallback if not created in database yet
     if (!tenant) {
       tenant = {
         id: profile?.tenant_id || '00000000-0000-0000-0000-000000000001',
