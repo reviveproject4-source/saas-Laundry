@@ -149,3 +149,80 @@ CREATE POLICY "Transactions Tenant Update" ON public.transactions
 CREATE POLICY "Transactions Tenant Delete" ON public.transactions
     FOR DELETE TO authenticated 
     USING (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());
+
+-- ====================================================================
+-- 7. PRODUCTION PROVISIONING (IDEMPOTENT TENANT, AUTH USERS, & PROFILES)
+-- Eksekusi bagian ini di Supabase SQL Editor jika user auth belum ada.
+-- ====================================================================
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+DO $$
+DECLARE
+    v_tenant_id UUID;
+    v_pengelola_id UUID;
+    v_investor_id UUID;
+BEGIN
+    -- 1. Inisialisasi Tenant Single Production (gen_random_uuid)
+    SELECT id INTO v_tenant_id FROM public.tenants WHERE name = 'Trio R Healthy Laundry' LIMIT 1;
+    IF v_tenant_id IS NULL THEN
+        v_tenant_id := gen_random_uuid();
+        INSERT INTO public.tenants (id, name, address, phone, monthly_deposit_target)
+        VALUES (v_tenant_id, 'Trio R Healthy Laundry', 'Jl. Utama No. 1, Jakarta', '081234567890', 10000000.00);
+    END IF;
+
+    -- 2. Provision Auth User & Profile Pengelola
+    SELECT id INTO v_pengelola_id FROM auth.users WHERE email = 'pengelola@triorlaundry.com' LIMIT 1;
+    IF v_pengelola_id IS NULL THEN
+        v_pengelola_id := gen_random_uuid();
+        INSERT INTO auth.users (
+            instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+        ) VALUES (
+            '00000000-0000-0000-0000-000000000000',
+            v_pengelola_id,
+            'authenticated',
+            'authenticated',
+            'pengelola@triorlaundry.com',
+            crypt('pengelola123', gen_salt('bf')),
+            NOW(),
+            '{"provider":"email","providers":["email"]}',
+            '{"full_name":"Pengelola Trio R"}',
+            NOW(),
+            NOW()
+        );
+    END IF;
+
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    VALUES (v_pengelola_id, v_tenant_id, 'Pengelola Trio R', 'pengelola')
+    ON CONFLICT (id) DO UPDATE 
+    SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role, full_name = EXCLUDED.full_name;
+
+    -- 3. Provision Auth User & Profile Investor
+    SELECT id INTO v_investor_id FROM auth.users WHERE email = 'investor@triorlaundry.com' LIMIT 1;
+    IF v_investor_id IS NULL THEN
+        v_investor_id := gen_random_uuid();
+        INSERT INTO auth.users (
+            instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+        ) VALUES (
+            '00000000-0000-0000-0000-000000000000',
+            v_investor_id,
+            'authenticated',
+            'authenticated',
+            'investor@triorlaundry.com',
+            crypt('investor021202', gen_salt('bf')),
+            NOW(),
+            '{"provider":"email","providers":["email"]}',
+            '{"full_name":"Investor Trio R"}',
+            NOW(),
+            NOW()
+        );
+    END IF;
+
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    VALUES (v_investor_id, v_tenant_id, 'Investor Trio R', 'investor')
+    ON CONFLICT (id) DO UPDATE 
+    SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role, full_name = EXCLUDED.full_name;
+
+END $$;
+
