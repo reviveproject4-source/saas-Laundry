@@ -1,10 +1,21 @@
 export type UserRole = 'investor' | 'pengelola';
 
 export interface UserProfile {
+  id: string; // auth.users UUID
+  tenant_id: string; // tenants UUID
+  full_name: string;
+  role: UserRole;
+  created_at?: string;
+  email?: string;
+}
+
+export interface TenantProfile {
   id: string;
   name: string;
-  role: UserRole;
-  tenant_id: string;
+  address: string;
+  phone: string;
+  monthly_deposit_target: number;
+  created_at?: string;
 }
 
 export type TransactionType = 'penerimaan' | 'pengeluaran';
@@ -23,7 +34,7 @@ export type SubCategory =
   | 'penarikan_investor';
 
 export interface Transaction {
-  id: string;
+  id: string; // UUID from database
   tenant_id: string;
   created_by_user_id: string;
   creator_role: UserRole;
@@ -33,14 +44,7 @@ export interface Transaction {
   sub_category: SubCategory;
   payment_method: PaymentMethod;
   amount: number;
-  notes?: string;
+  notes?: string | null;
   created_at?: string;
-}
-
-export interface OutletProfile {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  monthly_deposit_target: number; // 10.000.000 (fixed)
+  updated_at?: string;
 }

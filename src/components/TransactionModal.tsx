@@ -1,22 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Transaction, TransactionType, PaymentMethod, SubCategory, UserRole } from '@/lib/types';
-import { X, Plus, CreditCard, Banknote, ShieldAlert } from 'lucide-react';
+import { Transaction, TransactionType, PaymentMethod, SubCategory, UserProfile } from '@/lib/types';
+import { createTransactionInSupabase } from '@/lib/transactions';
+import { X, Banknote, CreditCard, ShieldAlert, Loader2 } from 'lucide-react';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (tx: Omit<Transaction, 'id' | 'created_at'>) => void;
-  currentRole: UserRole;
+  onSuccess: (newTx: Transaction) => void;
+  userProfile: UserProfile | null;
   defaultType?: TransactionType;
 }
 
 export default function TransactionModal({
   isOpen,
   onClose,
-  onSave,
-  currentRole,
+  onSuccess,
+  userProfile,
   defaultType = 'penerimaan',
 }: TransactionModalProps) {
   const [type, setType] = useState<TransactionType>(defaultType);
@@ -27,39 +28,65 @@ export default function TransactionModal({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [amount, setAmount] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const currentRole = userProfile?.role || 'pengelola';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      alert('Masukkan nominal yang valid');
+      setErrorMessage('Masukkan nominal transaksi yang valid.');
       return;
     }
 
-    onSave({
-      tenant_id: 'tenant-1',
-      created_by_user_id: currentRole === 'investor' ? 'user-investor-1' : 'user-pengelola-1',
-      creator_role: currentRole,
-      creator_name: currentRole === 'investor' ? 'Pak Hendra (Investor)' : 'Budi (Pengelola)',
-      transaction_date: date,
-      type,
-      sub_category: subCategory,
-      payment_method: paymentMethod,
-      amount: parsedAmount,
-      notes: notes.trim(),
-    });
+    if (!userProfile) {
+      setErrorMessage('Sesi autentikasi tidak valid. Silakan login kembali.');
+      return;
+    }
 
-    // Reset form
-    setAmount('');
-    setNotes('');
-    onClose();
+    try {
+      setSubmitting(true);
+      const res = await createTransactionInSupabase({
+        tenant_id: userProfile.tenant_id,
+        created_by_user_id: userProfile.id,
+        creator_role: userProfile.role,
+        creator_name: userProfile.full_name || (userProfile.role === 'investor' ? 'Investor' : 'Pengelola'),
+        transaction_date: date,
+        type,
+        sub_category: subCategory,
+        payment_method: paymentMethod,
+        amount: parsedAmount,
+        notes: notes.trim() || null,
+      });
+
+      if (res.error || !res.data) {
+        setErrorMessage(res.error || 'Gagal menyimpan transaksi ke database.');
+        setSubmitting(false);
+        return;
+      }
+
+      onSuccess(res.data);
+
+      // Reset form
+      setAmount('');
+      setNotes('');
+      setSubmitting(false);
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Terjadi kesalahan sistem saat menyimpan data.');
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 my-8">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
@@ -71,11 +98,19 @@ export default function TransactionModal({
           </div>
           <button
             onClick={onClose}
+            disabled={submitting}
             className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Error Feedback Banner */}
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+            {errorMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
@@ -214,16 +249,18 @@ export default function TransactionModal({
           <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-start space-x-2 text-[11px] text-amber-800">
             <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <span>
-              Aturan SaaS: Data yang diinput hanya dapat diubah/dihapus oleh Anda (role <strong>{currentRole}</strong>). Role lawan tidak bisa mengubahnya.
+              Aturan SaaS: Data tersimpan di Supabase dan hanya dapat diubah/dihapus oleh Anda (role <strong>{currentRole}</strong>).
             </span>
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-98"
+            disabled={submitting}
+            className="w-full flex items-center justify-center space-x-2 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50"
           >
-            Simpan Transaksi
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            <span>{submitting ? 'Menyimpan ke Supabase...' : 'Simpan Transaksi'}</span>
           </button>
         </form>
 

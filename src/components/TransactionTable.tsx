@@ -1,31 +1,35 @@
 'use client';
 
 import React from 'react';
-import { Transaction, UserRole } from '@/lib/types';
+import { Transaction, UserProfile, UserRole } from '@/lib/types';
 import { formatRupiah, formatDateIndo, getCategoryLabel } from '@/lib/formatters';
 import { Lock, Trash2, Banknote, CreditCard, UserCheck, ShieldCheck } from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: Transaction[];
-  currentRole: UserRole;
+  userProfile?: UserProfile | null;
+  currentRole?: UserRole;
   onDeleteTransaction: (id: string) => void;
   title?: string;
-  showFilters?: boolean;
 }
 
 export default function TransactionTable({
   transactions,
+  userProfile,
   currentRole,
   onDeleteTransaction,
   title = 'Riwayat Transaksi Harian',
 }: TransactionTableProps) {
+  const activeUserId = userProfile?.id;
+  const activeRole = userProfile?.role || currentRole || 'pengelola';
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="font-bold text-slate-800 text-lg">{title}</h3>
           <p className="text-xs text-slate-500">
-            Daftar pencatatan keuangan. Transaksi yang dibuat oleh role lain terkunci secara otomatis.
+            Daftar pencatatan keuangan tersimpan di Supabase. Transaksi milik user lain terkunci secara otomatis.
           </p>
         </div>
         <span className="text-xs bg-slate-100 px-3 py-1 rounded-full text-slate-600 font-medium">
@@ -50,12 +54,16 @@ export default function TransactionTable({
             {transactions.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-8 text-slate-400">
-                  Belum ada data transaksi yang dicatat.
+                  Belum ada data transaksi tersimpan di Supabase.
                 </td>
               </tr>
             ) : (
               transactions.map((tx) => {
-                const isEditable = tx.creator_role === currentRole;
+                // Rule: Editable if current user is the creator of this transaction
+                const isEditable = activeUserId
+                  ? tx.created_by_user_id === activeUserId
+                  : tx.creator_role === activeRole;
+
                 const isIncome = tx.type === 'penerimaan';
 
                 return (
@@ -78,12 +86,12 @@ export default function TransactionTable({
                         {tx.creator_role === 'investor' ? (
                           <>
                             <ShieldCheck className="w-3 h-3 mr-1 text-amber-600" />
-                            Investor
+                            {tx.creator_name || 'Investor'}
                           </>
                         ) : (
                           <>
                             <UserCheck className="w-3 h-3 mr-1 text-emerald-600" />
-                            Pengelola
+                            {tx.creator_name || 'Pengelola'}
                           </>
                         )}
                       </span>
@@ -145,7 +153,7 @@ export default function TransactionTable({
                       ) : (
                         <div
                           className="inline-flex items-center space-x-1 text-slate-400 bg-slate-100 px-2 py-1 rounded cursor-not-allowed text-[11px]"
-                          title={`Terkunci. Diinput oleh ${tx.creator_role}. Anda hanya bisa melihat.`}
+                          title={`Terkunci. Diinput oleh ${tx.creator_name} (${tx.creator_role}). Hanya pembuat yang dapat menghapus.`}
                         >
                           <Lock className="w-3 h-3 text-amber-500" />
                           <span className="text-[10px] font-semibold text-slate-500">Terkunci</span>

@@ -1,5 +1,5 @@
 -- ====================================================================
--- SKEMA DATABASE SUPABASE: SAAS KEUANGAN LAUNDRY
+-- SKEMA DATABASE SUPABASE: SAAS KEUANGAN LAUNDRY (TENANT ISOLATED RLS)
 -- Project: uzrqolqdqsispedbmtrl
 -- Eksekusi file ini di Supabase Dashboard -> SQL Editor -> Run
 -- ====================================================================
@@ -7,28 +7,28 @@
 -- 1. TABLE TENANTS (Outlet Laundry)
 CREATE TABLE IF NOT EXISTS public.tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL DEFAULT 'Outlet Laundry Barokah',
-    address TEXT DEFAULT 'Jl. Utama No. 123',
+    name VARCHAR(255) NOT NULL DEFAULT 'Trio R Healthy Laundry',
+    address TEXT DEFAULT 'Jl. Raya Utama No. 123',
     phone VARCHAR(50) DEFAULT '081234567890',
     monthly_deposit_target DECIMAL(15, 2) DEFAULT 10000000.00,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert 1 Default Tenant
-INSERT INTO public.tenants (name, address, phone) 
-VALUES ('Outlet Laundry Utama', 'Jl. Sudirman No. 88', '081234567890')
-ON CONFLICT DO NOTHING;
+-- Insert 1 Default Tenant jika belum ada
+INSERT INTO public.tenants (id, name, address, phone) 
+VALUES ('00000000-0000-0000-0000-000000000001', 'Trio R Healthy Laundry', 'Jl. Raya Utama No. 123', '081234567890')
+ON CONFLICT (id) DO NOTHING;
 
--- 2. TABLE PROFILES (Role Investor & Pengelola)
+-- 2. TABLE PROFILES (Extends Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    tenant_id UUID REFERENCES public.tenants(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL CHECK (role IN ('investor', 'pengelola')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. TABLE TRANSACTIONS (Omset, Reparasi, Cash/Transfer, Pengeluaran, Disetor, & Penarikan)
+-- 3. TABLE TRANSACTIONS
 CREATE TABLE IF NOT EXISTS public.transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -47,34 +47,79 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Indexing untuk query cepat harian & bulanan
+-- Indexing untuk query cepat
 CREATE INDEX IF NOT EXISTS idx_transactions_tenant_date ON public.transactions(tenant_id, transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_type ON public.transactions(type, payment_method);
+CREATE INDEX IF NOT EXISTS idx_profiles_tenant ON public.profiles(tenant_id);
 
--- 4. ROW-LEVEL SECURITY (RLS) & IMMUTABILITY POLICIES
+-- Enable RLS
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 
--- Allow SELECT for all logged in users
-CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Public Read Tenants" ON public.tenants FOR SELECT TO authenticated USING (true);
+-- HELPER FUNCTION: Ambil tenant_id milik authenticated user secara terisolasi & aman
+CREATE OR REPLACE FUNCTION public.get_auth_user_tenant_id()
+RETURNS UUID AS $$
+  SELECT tenant_id FROM public.profiles WHERE id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- Transactions SELECT: Pengelola & Investor BISA MELIHAT SEMUA transaksi
-CREATE POLICY "Read Transactions" ON public.transactions
-    FOR SELECT TO authenticated USING (true);
+-- 4. RLS POLICIES FOR PROFILES
+DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Profiles Tenant Select" ON public.profiles;
+DROP POLICY IF EXISTS "Profiles Self Insert" ON public.profiles;
+DROP POLICY IF EXISTS "Profiles Self Update" ON public.profiles;
 
--- Transactions INSERT: Pengelola & Investor BISA MEMBUAT transaksi
-CREATE POLICY "Insert Transactions" ON public.transactions
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = created_by_user_id);
+CREATE POLICY "Profiles Tenant Select" ON public.profiles
+    FOR SELECT TO authenticated 
+    USING (id = auth.uid() OR tenant_id = public.get_auth_user_tenant_id());
 
--- Transactions UPDATE: HANYA PEMBUAT (created_by_user_id) YANG BISA MENGUBAH
--- (Investor tidak bisa ubah milik Pengelola, Pengelola tidak bisa ubah milik Investor)
-CREATE POLICY "Update Transactions Own Only" ON public.transactions
+CREATE POLICY "Profiles Self Insert" ON public.profiles
+    FOR INSERT TO authenticated 
+    WITH CHECK (id = auth.uid());
+
+CREATE POLICY "Profiles Self Update" ON public.profiles
     FOR UPDATE TO authenticated 
-    USING (auth.uid() = created_by_user_id);
+    USING (id = auth.uid());
 
--- Transactions DELETE: HANYA PEMBUAT (created_by_user_id) YANG BISA MENGHAPUS
-CREATE POLICY "Delete Transactions Own Only" ON public.transactions
+-- 5. RLS POLICIES FOR TENANTS
+DROP POLICY IF EXISTS "Public Read Tenants" ON public.tenants;
+DROP POLICY IF EXISTS "Tenants Tenant Select" ON public.tenants;
+DROP POLICY IF EXISTS "Tenants Tenant Update" ON public.tenants;
+
+CREATE POLICY "Tenants Tenant Select" ON public.tenants
+    FOR SELECT TO authenticated 
+    USING (id = public.get_auth_user_tenant_id());
+
+CREATE POLICY "Tenants Tenant Update" ON public.tenants
+    FOR UPDATE TO authenticated 
+    USING (id = public.get_auth_user_tenant_id());
+
+-- 6. RLS POLICIES FOR TRANSACTIONS (TENANT ISOLATED & CREATOR PROTECTED)
+DROP POLICY IF EXISTS "Read Transactions" ON public.transactions;
+DROP POLICY IF EXISTS "Insert Transactions" ON public.transactions;
+DROP POLICY IF EXISTS "Update Transactions Own Only" ON public.transactions;
+DROP POLICY IF EXISTS "Delete Transactions Own Only" ON public.transactions;
+DROP POLICY IF EXISTS "Transactions Tenant Select" ON public.transactions;
+DROP POLICY IF EXISTS "Transactions Tenant Insert" ON public.transactions;
+DROP POLICY IF EXISTS "Transactions Tenant Update" ON public.transactions;
+DROP POLICY IF EXISTS "Transactions Tenant Delete" ON public.transactions;
+
+-- SELECT: HANYA transaksi milik tenant_id user yang dapat dibaca
+CREATE POLICY "Transactions Tenant Select" ON public.transactions
+    FOR SELECT TO authenticated 
+    USING (tenant_id = public.get_auth_user_tenant_id());
+
+-- INSERT: HANYA transaksi untuk tenant_id milik user & created_by_user_id = auth.uid()
+CREATE POLICY "Transactions Tenant Insert" ON public.transactions
+    FOR INSERT TO authenticated 
+    WITH CHECK (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());
+
+-- UPDATE: HANYA transaksi milik tenant_id user DAN dibuat oleh user tersebut
+CREATE POLICY "Transactions Tenant Update" ON public.transactions
+    FOR UPDATE TO authenticated 
+    USING (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());
+
+-- DELETE: HANYA transaksi milik tenant_id user DAN dibuat oleh user tersebut
+CREATE POLICY "Transactions Tenant Delete" ON public.transactions
     FOR DELETE TO authenticated 
-    USING (auth.uid() = created_by_user_id);
+    USING (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());

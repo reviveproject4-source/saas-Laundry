@@ -3,28 +3,60 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
-import { Transaction, UserRole } from '@/lib/types';
-import { getInitialUserRole, setUserRoleStore, getTransactionsStore } from '@/lib/store';
+import { Transaction, UserProfile, TenantProfile } from '@/lib/types';
+import { getCurrentAuthUser } from '@/lib/auth';
+import { fetchTransactions } from '@/lib/transactions';
 import { formatRupiah, formatDateIndo } from '@/lib/formatters';
-import { Printer, Download, Banknote, CreditCard, ArrowDownLeft, ArrowUpRight, Scale } from 'lucide-react';
+import { Printer, Banknote, CreditCard, ArrowDownLeft, ArrowUpRight, Scale, Loader2, AlertTriangle } from 'lucide-react';
 
 export default function LaporanPage() {
-  const [currentRole, setCurrentRole] = useState<UserRole>('pengelola');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [tenantProfile, setTenantProfile] = useState<TenantProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    setCurrentRole(getInitialUserRole());
-    setTransactions(getTransactionsStore());
-    setMounted(true);
-  }, []);
+  const loadData = async () => {
+    setLoading(true);
+    setErrorMessage(null);
 
-  const handleSwitchRole = (newRole: UserRole) => {
-    setCurrentRole(newRole);
-    setUserRoleStore(newRole);
+    const { profile, tenant, error: authErr } = await getCurrentAuthUser();
+    if (authErr) {
+      setErrorMessage(authErr);
+    }
+
+    if (!profile) {
+      window.location.href = '/login';
+      return;
+    }
+
+    setUserProfile(profile);
+    setTenantProfile(tenant);
+
+    const { data: txList, error: txErr } = await fetchTransactions();
+    if (txErr) {
+      setErrorMessage(txErr);
+    } else {
+      setTransactions(txList);
+    }
+
+    setLoading(false);
   };
 
-  if (!mounted) return null;
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
+        <div className="flex flex-col items-center space-y-3 bg-white p-8 rounded-3xl shadow-xl">
+          <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+          <span className="text-xs font-bold text-slate-700">Memuat laporan dari Supabase...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Calculations
   const incomeTxs = transactions.filter((t) => t.type === 'penerimaan');
@@ -32,21 +64,21 @@ export default function LaporanPage() {
 
   const cashIncome = incomeTxs
     .filter((t) => t.payment_method === 'cash')
-    .reduce((acc, t) => acc + t.amount, 0);
+    .reduce((acc, t) => acc + Number(t.amount), 0);
 
   const transferIncome = incomeTxs
     .filter((t) => t.payment_method === 'transfer')
-    .reduce((acc, t) => acc + t.amount, 0);
+    .reduce((acc, t) => acc + Number(t.amount), 0);
 
   const totalIncome = cashIncome + transferIncome;
 
   const cashExpense = expenseTxs
     .filter((t) => t.payment_method === 'cash')
-    .reduce((acc, t) => acc + t.amount, 0);
+    .reduce((acc, t) => acc + Number(t.amount), 0);
 
   const transferExpense = expenseTxs
     .filter((t) => t.payment_method === 'transfer')
-    .reduce((acc, t) => acc + t.amount, 0);
+    .reduce((acc, t) => acc + Number(t.amount), 0);
 
   const totalExpense = cashExpense + transferExpense;
 
@@ -58,19 +90,26 @@ export default function LaporanPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar currentRole={currentRole} onSwitchRole={handleSwitchRole} />
+      <Navbar userProfile={userProfile} tenantProfile={tenantProfile} />
 
       <div className="flex-1 max-w-7xl w-full mx-auto flex flex-col md:flex-row">
         <Sidebar />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
           
+          {errorMessage && (
+            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-2xl flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">Laporan Keuangan</h2>
               <p className="text-xs text-slate-500">
-                Rekapitulasi penerimaan Cash & Transfer vs Pengeluaran.
+                Rekapitulasi penerimaan Cash & Transfer vs Pengeluaran dari database Supabase.
               </p>
             </div>
 
@@ -171,7 +210,7 @@ export default function LaporanPage() {
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-[11px] text-slate-500">
-                Laporan disusun secara real-time berdasarkan input kolektif Investor & Pengelola.
+                Laporan disusun secara real-time dari database Supabase terisolasi.
               </div>
             </div>
 
