@@ -101,7 +101,7 @@ export async function getCurrentAuthUser(): Promise<{
       tenant = {
         id: profile?.tenant_id || '00000000-0000-0000-0000-000000000001',
         name: 'Trio R Healthy Laundry',
-        address: 'Jl. Raya Utama No. 123',
+        address: 'Jl. Utama No. 123',
         phone: '081234567890',
         monthly_deposit_target: 10000000,
       };
@@ -115,8 +115,4 @@ export async function getCurrentAuthUser(): Promise<{
 
 export async function signOutUser(): Promise<void> {
   await supabase.auth.signOut();
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('laundry_session_user');
-    localStorage.removeItem('laundry_active_role');
-  }
 }
