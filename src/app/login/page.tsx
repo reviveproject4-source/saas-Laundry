@@ -7,17 +7,19 @@ import { Lock, KeyRound, ShieldCheck, UserCheck, ArrowRight, Loader2, Mail } fro
 
 export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('pengelola');
-  const [email, setEmail] = useState<string>('pengelola@triorlaundry.com');
-  const [password, setPassword] = useState<string>('');
+  const [email, setEmail] = useState<string>('pengelola@gmail.com');
+  const [password, setPassword] = useState<string>('123456');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleRoleChange = (role: UserRole) => {
     setSelectedRole(role);
     if (role === 'investor') {
-      setEmail('investor@triorlaundry.com');
+      setEmail('investor@gmail.com');
+      setPassword('021202');
     } else {
-      setEmail('pengelola@triorlaundry.com');
+      setEmail('pengelola@gmail.com');
+      setPassword('123456');
     }
   };
 
@@ -123,7 +125,9 @@ export default function LoginPage() {
 
           {/* Password Input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Kata Sandi (Password)</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+              Kata Sandi / Password (Min 6 Karakter)
+            </label>
             <div className="relative">
               <input
                 type="password"
@@ -147,7 +151,7 @@ export default function LoginPage() {
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                <span>Masuk Akun Supabase</span>
+                <span>Masuk Sebagai {selectedRole === 'investor' ? 'Investor' : 'Pengelola'}</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

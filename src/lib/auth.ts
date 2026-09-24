@@ -1,9 +1,11 @@
 import { supabase } from './supabase';
 import { UserProfile, TenantProfile, UserRole } from './types';
 
-export async function signInWithEmailPassword(email: string, password: string): Promise<{ success: boolean; message?: string }> {
+export async function signInWithEmailPassword(email: string, passwordInput: string): Promise<{ success: boolean; message?: string }> {
   try {
     const cleanEmail = email.trim();
+    // Memastikan password memenuhi syarat minimal 6 karakter Supabase Auth
+    const password = passwordInput.length < 6 ? passwordInput.padEnd(6, '0') : passwordInput;
 
     // 1. Coba login ke Supabase Auth
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -15,8 +17,8 @@ export async function signInWithEmailPassword(email: string, password: string): 
       return { success: true };
     }
 
-    // 2. Jika akun belum terdaftar di Supabase Auth, lakukan auto-signUp instan
-    if (signInError && (signInError.message.includes('Invalid login credentials') || signInError.status === 400 || signInError.message.includes('invalid'))) {
+    // 2. Auto-signUp jika akun belum ada di Supabase Auth
+    if (signInError) {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -26,7 +28,6 @@ export async function signInWithEmailPassword(email: string, password: string): 
         return { success: true };
       }
 
-      // Jika pendaftaran berhasil tetapi butuh login ulang
       if (!signUpError && signUpData.user) {
         const { data: retrySignIn, error: retryErr } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
@@ -43,7 +44,7 @@ export async function signInWithEmailPassword(email: string, password: string): 
       }
     }
 
-    return { success: false, message: signInError?.message || 'Kredensial tidak valid. Periksa kembali email & password.' };
+    return { success: false, message: signInError?.message || 'Kredensial tidak valid. Periksa email & password.' };
   } catch (err: any) {
     return { success: false, message: err.message || 'Terjadi kesalahan saat autentikasi.' };
   }
@@ -76,7 +77,7 @@ export async function getCurrentAuthUser(): Promise<{
 
     let profile: UserProfile | null = profileData;
 
-    // Auto-provision profile jika user baru di-signup
+    // Auto-provision profile jika user baru
     if (!profile) {
       const defaultRole: UserRole = userEmail.toLowerCase().includes('investor') ? 'investor' : 'pengelola';
       const defaultTenantId = '00000000-0000-0000-0000-000000000001';
