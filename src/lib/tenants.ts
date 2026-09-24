@@ -15,16 +15,7 @@ export async function fetchTenantProfile(tenantId: string): Promise<{ data: Tena
     }
 
     if (!data) {
-      return {
-        data: {
-          id: tenantId,
-          name: 'Trio R Healthy Laundry',
-          address: 'Jl. Raya Utama No. 123',
-          phone: '081234567890',
-          monthly_deposit_target: 10000000,
-        },
-        error: null,
-      };
+      return { data: null, error: 'Data tenant tidak ditemukan di database.' };
     }
 
     return { data, error: null };

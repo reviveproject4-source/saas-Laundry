@@ -2,26 +2,13 @@
 
 import React, { useState } from 'react';
 import { signInWithEmailPassword } from '@/lib/auth';
-import { UserRole } from '@/lib/types';
-import { Lock, KeyRound, ShieldCheck, UserCheck, ArrowRight, Loader2, Mail } from 'lucide-react';
+import { Lock, KeyRound, ArrowRight, Loader2, Mail } from 'lucide-react';
 
 export default function LoginPage() {
-  const [selectedRole, setSelectedRole] = useState<UserRole>('pengelola');
-  const [email, setEmail] = useState<string>('pengelola@gmail.com');
-  const [password, setPassword] = useState<string>('123456');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-
-  const handleRoleChange = (role: UserRole) => {
-    setSelectedRole(role);
-    if (role === 'investor') {
-      setEmail('investor@gmail.com');
-      setPassword('021202');
-    } else {
-      setEmail('pengelola@gmail.com');
-      setPassword('123456');
-    }
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,53 +54,21 @@ export default function LoginPage() {
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-2xl text-center">
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-2xl text-center">
             {errorMessage}
           </div>
         )}
 
-        {/* Form Login Supabase */}
+        {/* Form Login Supabase Murni */}
         <form onSubmit={handleLoginSubmit} className="space-y-4">
           
-          {/* Role Selector */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Pilih Peran Pengguna</label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => handleRoleChange('pengelola')}
-                className={`flex items-center justify-center space-x-2 py-3 rounded-xl text-xs font-bold transition ${
-                  selectedRole === 'pengelola'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>Pengelola</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleChange('investor')}
-                className={`flex items-center justify-center space-x-2 py-3 rounded-xl text-xs font-bold transition ${
-                  selectedRole === 'investor'
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Investor</span>
-              </button>
-            </div>
-          </div>
-
           {/* Email Input */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Alamat Email</label>
             <div className="relative">
               <input
                 type="email"
-                placeholder="Masukkan Email..."
+                placeholder="Masukkan email terdaftar..."
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -125,13 +80,11 @@ export default function LoginPage() {
 
           {/* Password Input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-              Kata Sandi / Password (Min 6 Karakter)
-            </label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Kata Sandi (Password)</label>
             <div className="relative">
               <input
                 type="password"
-                placeholder="Masukkan Kata Sandi..."
+                placeholder="Masukkan kata sandi..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -151,7 +104,7 @@ export default function LoginPage() {
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                <span>Masuk Sebagai {selectedRole === 'investor' ? 'Investor' : 'Pengelola'}</span>
+                <span>Masuk Akun Supabase</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -161,7 +114,7 @@ export default function LoginPage() {
         {/* Security Note */}
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-2 text-[11px] text-slate-500">
           <Lock className="w-4 h-4 text-sky-600 shrink-0" />
-          <span>Sesi terautentikasi secara aman melalui Supabase Auth & RLS Policy.</span>
+          <span>Sesi & Peran (Role) ditentukan murni oleh database Supabase Auth & Profiles.</span>
         </div>
 
       </div>

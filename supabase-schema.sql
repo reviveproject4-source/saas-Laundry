@@ -1,5 +1,5 @@
 -- ====================================================================
--- SKEMA DATABASE SUPABASE: SAAS KEUANGAN LAUNDRY (TENANT ISOLATED RLS)
+-- SKEMA DATABASE SUPABASE: SAAS KEUANGAN LAUNDRY (HARDENED RLS SECURITY)
 -- Project: uzrqolqdqsispedbmtrl
 -- Eksekusi file ini di Supabase Dashboard -> SQL Editor -> Run
 -- ====================================================================
@@ -7,17 +7,12 @@
 -- 1. TABLE TENANTS (Outlet Laundry)
 CREATE TABLE IF NOT EXISTS public.tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL DEFAULT 'Trio R Healthy Laundry',
-    address TEXT DEFAULT 'Jl. Raya Utama No. 123',
-    phone VARCHAR(50) DEFAULT '081234567890',
+    name VARCHAR(255) NOT NULL,
+    address TEXT,
+    phone VARCHAR(50),
     monthly_deposit_target DECIMAL(15, 2) DEFAULT 10000000.00,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- Insert 1 Default Tenant jika belum ada
-INSERT INTO public.tenants (id, name, address, phone) 
-VALUES ('00000000-0000-0000-0000-000000000001', 'Trio R Healthy Laundry', 'Jl. Raya Utama No. 123', '081234567890')
-ON CONFLICT (id) DO NOTHING;
 
 -- 2. TABLE PROFILES (Extends Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -47,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Indexing untuk query cepat
+-- Indexing
 CREATE INDEX IF NOT EXISTS idx_transactions_tenant_date ON public.transactions(tenant_id, transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_type ON public.transactions(type, payment_method);
 CREATE INDEX IF NOT EXISTS idx_profiles_tenant ON public.profiles(tenant_id);
@@ -57,13 +52,19 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 
--- HELPER FUNCTION: Ambil tenant_id milik authenticated user secara terisolasi & aman
+-- HELPER FUNCTION: Ambil tenant_id milik authenticated user dari public.profiles
 CREATE OR REPLACE FUNCTION public.get_auth_user_tenant_id()
 RETURNS UUID AS $$
   SELECT tenant_id FROM public.profiles WHERE id = auth.uid() LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- 4. RLS POLICIES FOR PROFILES
+-- HELPER FUNCTION: Ambil role milik authenticated user dari public.profiles
+CREATE OR REPLACE FUNCTION public.get_auth_user_role()
+RETURNS VARCHAR AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- 4. RLS POLICIES FOR PROFILES (Dilarang ubah tenant_id atau role dari client)
 DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles Tenant Select" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles Self Insert" ON public.profiles;
@@ -77,9 +78,11 @@ CREATE POLICY "Profiles Self Insert" ON public.profiles
     FOR INSERT TO authenticated 
     WITH CHECK (id = auth.uid());
 
+-- Client tidak boleh mengubah tenant_id atau role
 CREATE POLICY "Profiles Self Update" ON public.profiles
     FOR UPDATE TO authenticated 
-    USING (id = auth.uid());
+    USING (id = auth.uid())
+    WITH CHECK (id = auth.uid() AND tenant_id = public.get_auth_user_tenant_id() AND role = public.get_auth_user_role());
 
 -- 5. RLS POLICIES FOR TENANTS
 DROP POLICY IF EXISTS "Public Read Tenants" ON public.tenants;
@@ -92,9 +95,10 @@ CREATE POLICY "Tenants Tenant Select" ON public.tenants
 
 CREATE POLICY "Tenants Tenant Update" ON public.tenants
     FOR UPDATE TO authenticated 
-    USING (id = public.get_auth_user_tenant_id());
+    USING (id = public.get_auth_user_tenant_id())
+    WITH CHECK (id = public.get_auth_user_tenant_id());
 
--- 6. RLS POLICIES FOR TRANSACTIONS (TENANT ISOLATED & CREATOR PROTECTED)
+-- 6. RLS POLICIES FOR TRANSACTIONS (Dilarang memalsukan tenant_id, created_by_user_id, atau role)
 DROP POLICY IF EXISTS "Read Transactions" ON public.transactions;
 DROP POLICY IF EXISTS "Insert Transactions" ON public.transactions;
 DROP POLICY IF EXISTS "Update Transactions Own Only" ON public.transactions;
@@ -104,20 +108,29 @@ DROP POLICY IF EXISTS "Transactions Tenant Insert" ON public.transactions;
 DROP POLICY IF EXISTS "Transactions Tenant Update" ON public.transactions;
 DROP POLICY IF EXISTS "Transactions Tenant Delete" ON public.transactions;
 
--- SELECT: HANYA transaksi milik tenant_id user yang dapat dibaca
+-- SELECT: HANYA transaksi milik tenant_id user
 CREATE POLICY "Transactions Tenant Select" ON public.transactions
     FOR SELECT TO authenticated 
     USING (tenant_id = public.get_auth_user_tenant_id());
 
--- INSERT: HANYA transaksi untuk tenant_id milik user & created_by_user_id = auth.uid()
+-- INSERT: HANYA untuk tenant_id milik user & created_by_user_id = auth.uid() & creator_role = user role
 CREATE POLICY "Transactions Tenant Insert" ON public.transactions
     FOR INSERT TO authenticated 
-    WITH CHECK (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());
+    WITH CHECK (
+        tenant_id = public.get_auth_user_tenant_id() 
+        AND created_by_user_id = auth.uid()
+        AND creator_role = public.get_auth_user_role()
+    );
 
--- UPDATE: HANYA transaksi milik tenant_id user DAN dibuat oleh user tersebut
+-- UPDATE: HANYA transaksi milik tenant_id user & created_by_user_id = auth.uid(), dan dilarang mengubah tenant_id/created_by_user_id
 CREATE POLICY "Transactions Tenant Update" ON public.transactions
     FOR UPDATE TO authenticated 
-    USING (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());
+    USING (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid())
+    WITH CHECK (
+        tenant_id = public.get_auth_user_tenant_id() 
+        AND created_by_user_id = auth.uid()
+        AND creator_role = public.get_auth_user_role()
+    );
 
 -- DELETE: HANYA transaksi milik tenant_id user DAN dibuat oleh user tersebut
 CREATE POLICY "Transactions Tenant Delete" ON public.transactions
