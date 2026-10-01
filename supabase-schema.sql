@@ -164,6 +164,16 @@ BEGIN
         INSERT INTO public.tenants (id, name, address, phone, monthly_deposit_target)
         VALUES (v_tenant_id, 'Trio R Healthy Laundry', 'Jl. Utama No. 1, Jakarta', '081234567890', 10000000.00);
     END IF;
+
+    -- 2. Pemilik / Investor (pemilik@gmail.com -> UUID: 69c1ed2b-564a-42db-982e-496c6d42226e)
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    VALUES ('69c1ed2b-564a-42db-982e-496c6d42226e', v_tenant_id, 'Pemilik Trio R', 'investor')
+    ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, role = 'investor', full_name = 'Pemilik Trio R';
+
+    -- 3. Pengelola (pengelola@gmail.com -> UUID: 297d703f-095d-4832-ab71-183280e52108)
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    VALUES ('297d703f-095d-4832-ab71-183280e52108', v_tenant_id, 'Pengelola Trio R', 'pengelola')
+    ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, role = 'pengelola', full_name = 'Pengelola Trio R';
 END $$;
 
 -- FUNCTION & TRIGGER: Otomatis buat Profile saat User baru dibuat di Supabase Auth Dashboard
@@ -222,6 +232,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Jalankan fungsi sinkronisasi
 SELECT public.sync_existing_auth_users();
+
 
 
 
