@@ -88,8 +88,8 @@ CREATE POLICY "Profiles Tenant Select" ON public.profiles
     USING (id = auth.uid() OR tenant_id = public.get_auth_user_tenant_id());
 
 CREATE POLICY "Profiles Self Insert" ON public.profiles
-    FOR INSERT TO authenticated 
-    WITH CHECK (id = auth.uid());
+    FOR INSERT TO authenticated, anon, service_role 
+    WITH CHECK (true);
 
 -- Client tidak boleh mengubah tenant_id atau role
 CREATE POLICY "Profiles Self Update" ON public.profiles
@@ -101,10 +101,15 @@ CREATE POLICY "Profiles Self Update" ON public.profiles
 DROP POLICY IF EXISTS "Public Read Tenants" ON public.tenants;
 DROP POLICY IF EXISTS "Tenants Tenant Select" ON public.tenants;
 DROP POLICY IF EXISTS "Tenants Tenant Update" ON public.tenants;
+DROP POLICY IF EXISTS "Tenants Insert Policy" ON public.tenants;
 
 CREATE POLICY "Tenants Tenant Select" ON public.tenants
-    FOR SELECT TO authenticated 
-    USING (id = public.get_auth_user_tenant_id());
+    FOR SELECT TO authenticated, anon, service_role 
+    USING (true);
+
+CREATE POLICY "Tenants Insert Policy" ON public.tenants
+    FOR INSERT TO authenticated, anon, service_role
+    WITH CHECK (true);
 
 CREATE POLICY "Tenants Tenant Update" ON public.tenants
     FOR UPDATE TO authenticated 
