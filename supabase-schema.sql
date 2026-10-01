@@ -151,7 +151,7 @@ CREATE POLICY "Transactions Tenant Delete" ON public.transactions
     USING (tenant_id = public.get_auth_user_tenant_id() AND created_by_user_id = auth.uid());
 
 -- ====================================================================
--- 7. PRODUCTION PROVISIONING (TENANT & PROFILES FOR AUTH USERS)
+-- 7. PRODUCTION PROVISIONING & AUTOMATIC PROFILE TRIGGER
 -- ====================================================================
 DO $$
 DECLARE
@@ -164,19 +164,57 @@ BEGIN
         INSERT INTO public.tenants (id, name, address, phone, monthly_deposit_target)
         VALUES (v_tenant_id, 'Trio R Healthy Laundry', 'Jl. Utama No. 1, Jakarta', '081234567890', 10000000.00);
     END IF;
-
-    -- 2. Profile Pengelola (Auth UUID: 6ff8d81a-2636-411b-804e-e5cdb8d18e6e)
-    INSERT INTO public.profiles (id, tenant_id, full_name, role)
-    VALUES ('6ff8d81a-2636-411b-804e-e5cdb8d18e6e', v_tenant_id, 'Pengelola Trio R', 'pengelola')
-    ON CONFLICT (id) DO UPDATE 
-    SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role, full_name = EXCLUDED.full_name;
-
-    -- 3. Profile Investor (Auth UUID: 1c8b77a6-3ad1-44bb-8b7f-8308650ca933)
-    INSERT INTO public.profiles (id, tenant_id, full_name, role)
-    VALUES ('1c8b77a6-3ad1-44bb-8b7f-8308650ca933', v_tenant_id, 'Investor Trio R', 'investor')
-    ON CONFLICT (id) DO UPDATE 
-    SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role, full_name = EXCLUDED.full_name;
 END $$;
+
+-- FUNCTION & TRIGGER: Otomatis buat Profile saat User baru dibuat di Supabase Auth Dashboard
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_tenant_id UUID;
+    v_role VARCHAR(50);
+BEGIN
+    SELECT id INTO v_tenant_id FROM public.tenants LIMIT 1;
+
+    -- Tentukan role berdasarkan email (jika mengandung investor/pemilik -> investor, selebihnya -> pengelola)
+    IF NEW.email LIKE '%investor%' OR NEW.email LIKE '%pemilik%' THEN
+        v_role := 'investor';
+    ELSE
+        v_role := 'pengelola';
+    END IF;
+
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    VALUES (
+        NEW.id,
+        v_tenant_id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', INITCAP(SPLIT_PART(NEW.email, '@', 1))),
+        v_role
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
+
+-- SYNC SINKRONISASI SEKETIKA: Sinkronkan seluruh User yang SUDAH TERBENTUK di auth.users ke public.profiles
+INSERT INTO public.profiles (id, tenant_id, full_name, role)
+SELECT 
+    u.id,
+    (SELECT id FROM public.tenants LIMIT 1),
+    COALESCE(u.raw_user_meta_data->>'full_name', INITCAP(SPLIT_PART(u.email, '@', 1))),
+    CASE 
+        WHEN u.email LIKE '%investor%' OR u.email LIKE '%pemilik%' THEN 'investor'
+        ELSE 'pengelola'
+    END
+FROM auth.users u
+WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)
+ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role;
+
 
 
 
