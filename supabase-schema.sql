@@ -201,19 +201,28 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
 
--- SYNC SINKRONISASI SEKETIKA: Sinkronkan seluruh User yang SUDAH TERBENTUK di auth.users ke public.profiles
-INSERT INTO public.profiles (id, tenant_id, full_name, role)
-SELECT 
-    u.id,
-    (SELECT id FROM public.tenants LIMIT 1),
-    COALESCE(u.raw_user_meta_data->>'full_name', INITCAP(SPLIT_PART(u.email, '@', 1))),
-    CASE 
-        WHEN u.email LIKE '%investor%' OR u.email LIKE '%pemilik%' THEN 'investor'
-        ELSE 'pengelola'
-    END
-FROM auth.users u
-WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)
-ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role;
+-- SYNC SINKRONISASI SEKETIKA (Dijalankan dengan SECURITY DEFINER agar aman dari permission denied)
+CREATE OR REPLACE FUNCTION public.sync_existing_auth_users()
+RETURNS void AS $$
+BEGIN
+    INSERT INTO public.profiles (id, tenant_id, full_name, role)
+    SELECT 
+        u.id,
+        (SELECT id FROM public.tenants LIMIT 1),
+        COALESCE(u.raw_user_meta_data->>'full_name', INITCAP(SPLIT_PART(u.email, '@', 1))),
+        CASE 
+            WHEN u.email LIKE '%investor%' OR u.email LIKE '%pemilik%' THEN 'investor'
+            ELSE 'pengelola'
+        END
+    FROM auth.users u
+    WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)
+    ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, role = EXCLUDED.role;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Jalankan fungsi sinkronisasi
+SELECT public.sync_existing_auth_users();
+
 
 
 
