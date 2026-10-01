@@ -153,11 +153,14 @@ CREATE POLICY "Transactions Tenant Delete" ON public.transactions
 -- ====================================================================
 -- 7. PRODUCTION PROVISIONING & AUTOMATIC PROFILE TRIGGER
 -- ====================================================================
-DO $$
+-- 7. PRODUCTION PROVISIONING & AUTOMATIC PROFILE TRIGGER
+-- ====================================================================
+CREATE OR REPLACE FUNCTION public.seed_production_tenants_and_profiles()
+RETURNS void AS $$
 DECLARE
     v_tenant_id UUID;
 BEGIN
-    -- 1. Inisialisasi Tenant Single Production (gen_random_uuid)
+    -- 1. Inisialisasi Tenant Single Production (gen_random_uuid - Bypass RLS via SECURITY DEFINER)
     SELECT id INTO v_tenant_id FROM public.tenants WHERE name = 'Trio R Healthy Laundry' LIMIT 1;
     IF v_tenant_id IS NULL THEN
         v_tenant_id := gen_random_uuid();
@@ -174,7 +177,12 @@ BEGIN
     INSERT INTO public.profiles (id, tenant_id, full_name, role)
     VALUES ('297d703f-095d-4832-ab71-183280e52108', v_tenant_id, 'Pengelola Trio R', 'pengelola')
     ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, role = 'pengelola', full_name = 'Pengelola Trio R';
-END $$;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Jalankan fungsi inisialisasi tenant & profiles
+SELECT public.seed_production_tenants_and_profiles();
+
 
 -- FUNCTION & TRIGGER: Otomatis buat Profile saat User baru dibuat di Supabase Auth Dashboard
 CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
