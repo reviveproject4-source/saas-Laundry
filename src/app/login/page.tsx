@@ -45,11 +45,14 @@ export default function LoginPage() {
             <img
               src="/logo.png"
               alt="Trio R Healthy Laundry Logo"
-              className="w-full h-full object-contain"
+              width={72}
+              height={72}
+              style={{ maxWidth: '72px', maxHeight: '72px', width: 'auto', height: 'auto', objectFit: 'contain' }}
+              className="object-contain"
             />
           </div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Trio R Healthy Laundry</h1>
-          <p className="text-xs text-slate-500 font-medium">Autentikasi Supabase Auth (Investor & Pengelola)</p>
+          <p className="text-xs text-slate-500 font-medium">Sistem Informasi Keuangan & Operasional Outlet</p>
         </div>
 
         {/* Error Alert */}
@@ -59,7 +62,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Form Login Supabase Murni */}
+        {/* Form Login */}
         <form onSubmit={handleLoginSubmit} className="space-y-4">
           
           {/* Email Input */}
@@ -104,7 +107,7 @@ export default function LoginPage() {
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                <span>Masuk Akun Supabase</span>
+                <span>Masuk ke Akun</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -114,7 +117,7 @@ export default function LoginPage() {
         {/* Security Note */}
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-2 text-[11px] text-slate-500">
           <Lock className="w-4 h-4 text-sky-600 shrink-0" />
-          <span>Sesi & Peran (Role) ditentukan murni oleh database Supabase Auth & Profiles.</span>
+          <span>Akses sistem aman berbasis peran (Role: Investor & Pengelola).</span>
         </div>
 
       </div>

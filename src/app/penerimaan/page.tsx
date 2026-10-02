@@ -50,8 +50,12 @@ export default function PenerimaanPage() {
     loadData();
   }, []);
 
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const handleTransactionSuccess = (newTx: Transaction) => {
     setTransactions((prev) => [newTx, ...prev]);
+    setSuccessMessage('Pemasukan berhasil disimpan.');
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -60,6 +64,8 @@ export default function PenerimaanPage() {
       setErrorMessage(res.error);
     } else {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
+      setSuccessMessage('Data transaksi berhasil dihapus.');
+      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
 
@@ -68,7 +74,7 @@ export default function PenerimaanPage() {
       <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
         <div className="flex flex-col items-center space-y-3 bg-white p-8 rounded-3xl shadow-xl">
           <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-          <span className="text-xs font-bold text-slate-700">Memuat data penerimaan dari Supabase...</span>
+          <span className="text-xs font-bold text-slate-700">Memuat data penerimaan...</span>
         </div>
       </div>
     );
@@ -100,11 +106,17 @@ export default function PenerimaanPage() {
             </div>
           )}
 
+          {successMessage && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center space-x-2 shadow-xs">
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Penerimaan Uang</h2>
               <p className="text-xs text-slate-500">
-                Pencatatan data uang diterima (Omset Laundry, Reparasi, Cash & Transfer) dari Supabase.
+                Pencatatan data uang masuk operasional (Omset Laundry, Reparasi, Cash & Transfer).
               </p>
             </div>
 

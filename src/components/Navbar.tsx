@@ -22,11 +22,14 @@ export default function Navbar({ userProfile, tenantProfile, currentRole }: Navb
           
           {/* Logo & Outlet Name */}
           <div className="flex items-center space-x-3">
-            <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-amber-200 bg-amber-50 shrink-0">
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-amber-200 bg-amber-50 shrink-0 flex items-center justify-center">
               <img
                 src="/logo.png"
                 alt="Trio R Healthy Laundry Logo"
-                className="w-full h-full object-contain p-0.5"
+                width={40}
+                height={40}
+                style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+                className="p-0.5"
               />
             </div>
             <div>

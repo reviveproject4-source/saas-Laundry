@@ -90,7 +90,7 @@ export default function SettingPage() {
       <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
         <div className="flex flex-col items-center space-y-3 bg-white p-8 rounded-3xl shadow-xl">
           <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
-          <span className="text-xs font-bold text-slate-700">Memuat pengaturannya dari Supabase...</span>
+          <span className="text-xs font-bold text-slate-700">Memuat pengaturan...</span>
         </div>
       </div>
     );
@@ -108,9 +108,9 @@ export default function SettingPage() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
           
           <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Setting</h2>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Pengaturan</h2>
             <p className="text-xs text-slate-500">
-              Kelola profil outlet laundry & pengaturan akun tersimpan di Supabase.
+              Kelola profil outlet laundry dan informasi akun pengguna.
             </p>
           </div>
 
@@ -128,17 +128,23 @@ export default function SettingPage() {
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
                 <div className="w-12 h-12 bg-amber-50 rounded-xl border border-amber-200 p-1 flex justify-center items-center shrink-0">
-                  <img src="/logo.png" alt="Trio R Logo" className="w-full h-full object-contain" />
+                  <img
+                    src="/logo.png"
+                    alt="Trio R Logo"
+                    width={44}
+                    height={44}
+                    style={{ maxWidth: '44px', maxHeight: '44px', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                  />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800 text-base">Profil {tenant?.name || 'Outlet Laundry'}</h3>
-                  <p className="text-xs text-slate-500 font-medium">Informasi identitas cabang tersimpan di Supabase database</p>
+                  <p className="text-xs text-slate-500 font-medium">Informasi identitas cabang dan operasional outlet</p>
                 </div>
               </div>
 
               {savedSuccess && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold rounded-xl">
-                  ✓ Profil outlet berhasil diperbarui di Supabase!
+                  ✓ Profil outlet berhasil diperbarui.
                 </div>
               )}
 

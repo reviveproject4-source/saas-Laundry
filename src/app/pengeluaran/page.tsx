@@ -50,8 +50,12 @@ export default function PengeluaranPage() {
     loadData();
   }, []);
 
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const handleTransactionSuccess = (newTx: Transaction) => {
     setTransactions((prev) => [newTx, ...prev]);
+    setSuccessMessage('Pengeluaran berhasil disimpan.');
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -60,6 +64,8 @@ export default function PengeluaranPage() {
       setErrorMessage(res.error);
     } else {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
+      setSuccessMessage('Data pengeluaran berhasil dihapus.');
+      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
 
@@ -68,7 +74,7 @@ export default function PengeluaranPage() {
       <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
         <div className="flex flex-col items-center space-y-3 bg-white p-8 rounded-3xl shadow-xl">
           <Loader2 className="w-8 h-8 text-rose-600 animate-spin" />
-          <span className="text-xs font-bold text-slate-700">Memuat data pengeluaran dari Supabase...</span>
+          <span className="text-xs font-bold text-slate-700">Memuat data pengeluaran...</span>
         </div>
       </div>
     );
@@ -106,11 +112,17 @@ export default function PengeluaranPage() {
             </div>
           )}
 
+          {successMessage && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center space-x-2 shadow-xs">
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Pengeluaran & Disetor</h2>
               <p className="text-xs text-slate-500">
-                Pencatatan biaya operasional, pembelian, setoran investor, & penarikan prive investor dari Supabase.
+                Pencatatan biaya operasional, pembelian bahan, dan setoran kepada investor.
               </p>
             </div>
 

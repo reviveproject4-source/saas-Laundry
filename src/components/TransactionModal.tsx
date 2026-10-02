@@ -245,11 +245,11 @@ export default function TransactionModal({
             />
           </div>
 
-          {/* Immutability Notice */}
-          <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-start space-x-2 text-[11px] text-amber-800">
-            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          {/* Information Notice */}
+          <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-start space-x-2 text-[11px] text-slate-600">
+            <ShieldAlert className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
             <span>
-              Aturan SaaS: Data tersimpan di Supabase dan hanya dapat diubah/dihapus oleh Anda (role <strong>{currentRole}</strong>).
+              Pencatatan keuangan aman: Transaksi ini akan tersimpan ke pembukuan resmi sebagai <strong className="capitalize">{currentRole}</strong>.
             </span>
           </div>
 
@@ -260,7 +260,7 @@ export default function TransactionModal({
             className="w-full flex items-center justify-center space-x-2 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>{submitting ? 'Menyimpan ke Supabase...' : 'Simpan Transaksi'}</span>
+            <span>{submitting ? 'Menyimpan Transaksi...' : (type === 'penerimaan' ? 'Simpan Pemasukan' : 'Simpan Pengeluaran')}</span>
           </button>
         </form>
 

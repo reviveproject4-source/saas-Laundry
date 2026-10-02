@@ -11,7 +11,7 @@ import { Transaction, UserProfile, TenantProfile } from '@/lib/types';
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions, deleteTransactionFromSupabase } from '@/lib/transactions';
 import { formatRupiah } from '@/lib/formatters';
-import { PlusCircle, Banknote, CreditCard, ArrowUpRight, ArrowDownLeft, Loader2, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Banknote, CreditCard, ArrowUpRight, ArrowDownLeft, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loadDataFromSupabase = async () => {
@@ -54,6 +55,10 @@ export default function DashboardPage() {
 
   const handleTransactionSuccess = (newTx: Transaction) => {
     setTransactions((prev) => [newTx, ...prev]);
+    setSuccessMessage(newTx.type === 'penerimaan' ? 'Pemasukan berhasil disimpan.' : 'Pengeluaran berhasil disimpan.');
+    setTimeout(() => {
+      setSuccessMessage(null);
+    }, 4000);
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -62,6 +67,8 @@ export default function DashboardPage() {
       setErrorMessage(res.error);
     } else {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
+      setSuccessMessage('Data transaksi berhasil dihapus.');
+      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
 
@@ -70,58 +77,89 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
         <div className="flex flex-col items-center space-y-3 bg-white p-8 rounded-3xl shadow-xl">
           <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
-          <span className="text-xs font-bold text-slate-700">Memuat data dari Supabase...</span>
+          <span className="text-xs font-bold text-slate-700">Memuat dashboard...</span>
         </div>
       </div>
     );
   }
 
-  // Calculations for Today
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayTxs = transactions.filter((t) => t.transaction_date === todayStr);
+  // Helpers for Local Date Formatting (Safe against UTC timezone shifts)
+  const getLocalDateString = (d: Date = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = getLocalDateString();
+  const currentMonthPrefix = todayStr.substring(0, 7);
+
+  // 1. Calculations: Akumulasi Keseluruhan (All-time / Total Pemasukan & Pengeluaran)
+  const allIncomeTxs = transactions.filter((t) => t.type === 'penerimaan');
+  const allExpenseTxs = transactions.filter((t) => t.type === 'pengeluaran');
+
+  const totalIncome = allIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const totalExpense = allExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const netBalance = totalIncome - totalExpense;
+
+  // 2. Calculations: Hari Ini (Berdasarkan tanggal lokal outlet)
+  const todayTxs = transactions.filter((t) => {
+    const txDate = t.transaction_date ? t.transaction_date.substring(0, 10) : '';
+    return txDate === todayStr;
+  });
 
   const todayIncomeCash = todayTxs
     .filter((t) => t.type === 'penerimaan' && t.payment_method === 'cash')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
   const todayIncomeTransfer = todayTxs
     .filter((t) => t.type === 'penerimaan' && t.payment_method === 'transfer')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
   const todayIncomeTotal = todayIncomeCash + todayIncomeTransfer;
 
   const todayExpenseTotal = todayTxs
     .filter((t) => t.type === 'pengeluaran')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // Month target calculations
-  const monthDisetor = transactions
+  // 3. Calculations: Target Setoran Bulan Ini
+  const monthTxs = transactions.filter((t) => t.transaction_date && t.transaction_date.startsWith(currentMonthPrefix));
+
+  const monthDisetor = monthTxs
     .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'disetor_investor')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  const monthPenarikan = transactions
+  const monthPenarikan = monthTxs
     .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'penarikan_investor')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // 6 Days Data from Supabase
+  // 4. Data Grafik 6 Hari Terakhir
   const dailyData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (5 - i));
-    const dStr = d.toISOString().split('T')[0];
+    const dStr = getLocalDateString(d);
     const dayName = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
     const omset = transactions
-      .filter((t) => t.transaction_date === dStr && t.type === 'penerimaan')
-      .reduce((acc, t) => acc + Number(t.amount), 0);
+      .filter((t) => t.transaction_date && t.transaction_date.substring(0, 10) === dStr && t.type === 'penerimaan')
+      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
     return { label: dayName, omset };
   });
 
-  // 6 Months Data from Supabase
-  const monthNames = ['Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep'];
-  const monthlyData = monthNames.map((m) => ({
-    label: m,
-    omset: 0,
-  }));
+  // 5. Data Grafik 6 Bulan Terakhir
+  const monthlyData = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const prefix = `${y}-${m}`;
+    const label = d.toLocaleDateString('id-ID', { month: 'short' });
+    const omset = transactions
+      .filter((t) => t.transaction_date && t.transaction_date.startsWith(prefix) && t.type === 'penerimaan')
+      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+    return { label, omset };
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -140,11 +178,19 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Success Banner */}
+          {successMessage && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center space-x-2 animate-fadeIn shadow-xs">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           {/* Header & Quick Add */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">Halaman Utama (Dashboard)</h2>
-              <p className="text-xs text-slate-500">Laporan transaksi tersimpan di Supabase & target setoran investor.</p>
+              <p className="text-xs text-slate-500">Ringkasan performa keuangan outlet & progres setoran investor.</p>
             </div>
 
             <button
@@ -159,57 +205,85 @@ export default function DashboardPage() {
           {/* Target Setoran 10jt Card */}
           <TargetProgress totalDisetor={monthDisetor} totalPenarikan={monthPenarikan} />
 
-          {/* Today Summary Widgets */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Primary Summary Widgets: Akumulasi Total */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
-            {/* Omset Hari Ini */}
+            {/* Total Pemasukan Akumulasi */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Omset Hari Ini</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase">Total Pemasukan</span>
                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                   <ArrowDownLeft className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-slate-800">{formatRupiah(todayIncomeTotal)}</div>
-              <div className="text-[11px] text-emerald-600 font-medium mt-1">Laundry & Reparasi</div>
+              <div className="text-2xl font-extrabold text-emerald-600">{formatRupiah(totalIncome)}</div>
+              <div className="text-[11px] text-slate-400 mt-1">Akumulasi Seluruh Omset Tercatat</div>
             </div>
 
-            {/* Cash Hari Ini */}
+            {/* Total Pengeluaran Akumulasi */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Penerimaan Cash</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <Banknote className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-extrabold text-slate-800">{formatRupiah(todayIncomeCash)}</div>
-              <div className="text-[11px] text-slate-400 mt-1">Uang Tunai di Kasir</div>
-            </div>
-
-            {/* Transfer Hari Ini */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Penerimaan Transfer</span>
-                <div className="p-2 bg-sky-50 text-sky-600 rounded-xl">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-extrabold text-slate-800">{formatRupiah(todayIncomeTransfer)}</div>
-              <div className="text-[11px] text-slate-400 mt-1">Masuk Rekening Bank</div>
-            </div>
-
-            {/* Pengeluaran Hari Ini */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Pengeluaran Hari Ini</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase">Total Pengeluaran</span>
                 <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
                   <ArrowUpRight className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-rose-600">{formatRupiah(todayExpenseTotal)}</div>
-              <div className="text-[11px] text-rose-600 font-medium mt-1">Biaya Operasional</div>
+              <div className="text-2xl font-extrabold text-rose-600">{formatRupiah(totalExpense)}</div>
+              <div className="text-[11px] text-slate-400 mt-1">Operasional & Setoran Investor</div>
             </div>
 
+            {/* Saldo Kas Bersih */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase">Saldo Kas Bersih</span>
+                <div className="p-2 bg-sky-50 text-sky-600 rounded-xl">
+                  <Banknote className="w-4 h-4" />
+                </div>
+              </div>
+              <div className={`text-2xl font-extrabold ${netBalance >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
+                {formatRupiah(netBalance)}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1">Pemasukan - Pengeluaran</div>
+            </div>
+
+          </div>
+
+          {/* Today Summary Widgets */}
+          <div className="bg-slate-100/80 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+            <div className="flex justify-between items-center px-1">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Ringkasan Hari Ini ({todayStr})</span>
+              <span className="text-[11px] font-medium text-slate-500">{todayTxs.length} Transaksi Hari Ini</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Omset Hari Ini */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Omset Hari Ini</span>
+                <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeTotal)}</div>
+                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Laundry & Reparasi</div>
+              </div>
+
+              {/* Cash Hari Ini */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Kasir Tunai (Cash)</span>
+                <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeCash)}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Uang Kas Masuk</div>
+              </div>
+
+              {/* Transfer Hari Ini */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Transfer Bank / QRIS</span>
+                <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeTransfer)}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Masuk Rekening Bank</div>
+              </div>
+
+              {/* Pengeluaran Hari Ini */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Pengeluaran Hari Ini</span>
+                <div className="text-xl font-black text-rose-600">{formatRupiah(todayExpenseTotal)}</div>
+                <div className="text-[10px] text-rose-500 mt-0.5">Biaya Operasional</div>
+              </div>
+            </div>
           </div>
 
           {/* Revenue Chart */}

@@ -29,7 +29,7 @@ export default function TransactionTable({
         <div>
           <h3 className="font-bold text-slate-800 text-lg">{title}</h3>
           <p className="text-xs text-slate-500">
-            Daftar pencatatan keuangan tersimpan di Supabase. Transaksi milik user lain terkunci secara otomatis.
+            Daftar seluruh riwayat transaksi keuangan outlet yang telah diverifikasi sistem.
           </p>
         </div>
         <span className="text-xs bg-slate-100 px-3 py-1 rounded-full text-slate-600 font-medium">
@@ -54,7 +54,7 @@ export default function TransactionTable({
             {transactions.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-8 text-slate-400">
-                  Belum ada data transaksi tersimpan di Supabase.
+                  Belum ada riwayat transaksi yang tercatat.
                 </td>
               </tr>
             ) : (
