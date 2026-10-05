@@ -16,10 +16,11 @@ export function formatDateIndo(dateStr: string): string {
   }).format(date);
 }
 
-export function getCategoryLabel(subCategory: string): string {
+export function getCategoryLabel(subCategory?: string | null): string {
+  if (!subCategory) return '-';
   const map: Record<string, string> = {
-    laundry: 'Omset Laundry',
-    reparasi: 'Reparasi Machine/Baju',
+    laundry: 'Laundry',
+    reparasi: 'Reparasi',
     lainnya: 'Penerimaan Lainnya',
     operasional: 'Operasional Toko',
     gas: 'Pembelian Gas',

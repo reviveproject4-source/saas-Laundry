@@ -25,7 +25,7 @@ export default function Sidebar() {
       icon: ArrowUpRight,
     },
     {
-      label: 'Laporan Keuangan',
+      label: 'Ringkasan Pencatatan',
       href: '/laporan',
       icon: BarChart3,
     },

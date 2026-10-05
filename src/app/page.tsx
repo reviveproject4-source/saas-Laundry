@@ -7,9 +7,11 @@ import TargetProgress from '@/components/TargetProgress';
 import RevenueChart from '@/components/RevenueChart';
 import TransactionTable from '@/components/TransactionTable';
 import TransactionModal from '@/components/TransactionModal';
-import { Transaction, UserProfile, TenantProfile } from '@/lib/types';
+import OmzetModal from '@/components/OmzetModal';
+import { Transaction, TransactionType, UserProfile, TenantProfile, DailyOmzet } from '@/lib/types';
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions, deleteTransactionFromSupabase } from '@/lib/transactions';
+import { fetchDailyOmzet } from '@/lib/omzet';
 import { formatRupiah } from '@/lib/formatters';
 import { PlusCircle, Banknote, CreditCard, ArrowUpRight, ArrowDownLeft, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
@@ -17,10 +19,13 @@ export default function DashboardPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [tenantProfile, setTenantProfile] = useState<TenantProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [dailyOmzetList, setDailyOmzetList] = useState<DailyOmzet[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [transactionModalType, setTransactionModalType] = useState<TransactionType>('penerimaan');
+  const [isOmzetModalOpen, setIsOmzetModalOpen] = useState(false);
 
   const loadDataFromSupabase = async () => {
     setLoading(true);
@@ -39,11 +44,21 @@ export default function DashboardPage() {
     setUserProfile(profile);
     setTenantProfile(tenant);
 
-    const { data: txList, error: txErr } = await fetchTransactions();
-    if (txErr) {
-      setErrorMessage(txErr);
+    const [txResult, omzetResult] = await Promise.all([
+      fetchTransactions(),
+      fetchDailyOmzet(),
+    ]);
+
+    if (txResult.error) {
+      setErrorMessage(txResult.error);
     } else {
-      setTransactions(txList);
+      setTransactions(txResult.data);
+    }
+
+    if (omzetResult.error) {
+      console.error('Error fetching omzet:', omzetResult.error);
+    } else {
+      setDailyOmzetList(omzetResult.data);
     }
 
     setLoading(false);
@@ -56,6 +71,22 @@ export default function DashboardPage() {
   const handleTransactionSuccess = (newTx: Transaction) => {
     setTransactions((prev) => [newTx, ...prev]);
     setSuccessMessage(newTx.type === 'penerimaan' ? 'Pemasukan berhasil disimpan.' : 'Pengeluaran berhasil disimpan.');
+    setTimeout(() => {
+      setSuccessMessage(null);
+    }, 4000);
+  };
+
+  const handleOmzetSuccess = (savedOmzet: DailyOmzet) => {
+    setDailyOmzetList((prev) => {
+      const idx = prev.findIndex((o) => o.date === savedOmzet.date);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = savedOmzet;
+        return updated;
+      }
+      return [savedOmzet, ...prev];
+    });
+    setSuccessMessage(`Rekap omzet tanggal ${savedOmzet.date} berhasil disimpan.`);
     setTimeout(() => {
       setSuccessMessage(null);
     }, 4000);
@@ -94,7 +125,7 @@ export default function DashboardPage() {
   const todayStr = getLocalDateString();
   const currentMonthPrefix = todayStr.substring(0, 7);
 
-  // 1. Calculations: Akumulasi Keseluruhan (All-time / Total Pemasukan & Pengeluaran)
+  // 1. Calculations: Akumulasi Keseluruhan (All-time / Total Penerimaan & Pengeluaran)
   const allIncomeTxs = transactions.filter((t) => t.type === 'penerimaan');
   const allExpenseTxs = transactions.filter((t) => t.type === 'pengeluaran');
 
@@ -103,6 +134,13 @@ export default function DashboardPage() {
   const netBalance = totalIncome - totalExpense;
 
   // 2. Calculations: Hari Ini (Berdasarkan tanggal lokal outlet)
+  // A. Omzet Harian (Murni dari public.daily_omzet, BUKAN dari transactions)
+  const todayOmzetRecord = dailyOmzetList.find((o) => o.date === todayStr);
+  const todayOmzetTotal = todayOmzetRecord
+    ? Number(todayOmzetRecord.omzet_laundry || 0) + Number(todayOmzetRecord.omzet_reparasi || 0)
+    : 0;
+
+  // B. Penerimaan & Pengeluaran Hari Ini (Murni dari public.transactions)
   const todayTxs = transactions.filter((t) => {
     const txDate = t.transaction_date ? t.transaction_date.substring(0, 10) : '';
     return txDate === todayStr;
@@ -115,8 +153,6 @@ export default function DashboardPage() {
   const todayIncomeTransfer = todayTxs
     .filter((t) => t.type === 'penerimaan' && t.payment_method === 'transfer')
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-
-  const todayIncomeTotal = todayIncomeCash + todayIncomeTransfer;
 
   const todayExpenseTotal = todayTxs
     .filter((t) => t.type === 'pengeluaran')
@@ -133,20 +169,21 @@ export default function DashboardPage() {
     .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'penarikan_investor')
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // 4. Data Grafik 6 Hari Terakhir
+  // 4. Data Grafik 6 Hari Terakhir (Murni dari public.daily_omzet)
   const dailyData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (5 - i));
     const dStr = getLocalDateString(d);
     const dayName = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
-    const omset = transactions
-      .filter((t) => t.transaction_date && t.transaction_date.substring(0, 10) === dStr && t.type === 'penerimaan')
-      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+    const dayOmzet = dailyOmzetList.find((o) => o.date === dStr);
+    const omset = dayOmzet
+      ? Number(dayOmzet.omzet_laundry || 0) + Number(dayOmzet.omzet_reparasi || 0)
+      : 0;
 
     return { label: dayName, omset };
   });
 
-  // 5. Data Grafik 6 Bulan Terakhir
+  // 5. Data Grafik 6 Bulan Terakhir (Murni dari public.daily_omzet)
   const monthlyData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
@@ -154,9 +191,9 @@ export default function DashboardPage() {
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const prefix = `${y}-${m}`;
     const label = d.toLocaleDateString('id-ID', { month: 'short' });
-    const omset = transactions
-      .filter((t) => t.transaction_date && t.transaction_date.startsWith(prefix) && t.type === 'penerimaan')
-      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+    const omset = dailyOmzetList
+      .filter((o) => o.date && o.date.startsWith(prefix))
+      .reduce((acc, o) => acc + Number(o.omzet_laundry || 0) + Number(o.omzet_reparasi || 0), 0);
 
     return { label, omset };
   });
@@ -193,13 +230,38 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500">Ringkasan performa keuangan outlet & progres setoran investor.</p>
             </div>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>+ Input Transaksi Baru</span>
-            </button>
+            {userProfile?.role === 'pengelola' ? (
+              <button
+                onClick={() => setIsOmzetModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Input Omzet Harian</span>
+              </button>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setTransactionModalType('penerimaan');
+                    setIsTransactionModalOpen(true);
+                  }}
+                  className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>+ Input Penerimaan</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setTransactionModalType('pengeluaran');
+                    setIsTransactionModalOpen(true);
+                  }}
+                  className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>+ Input Pengeluaran</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Target Setoran 10jt Card */}
@@ -208,16 +270,16 @@ export default function DashboardPage() {
           {/* Primary Summary Widgets: Akumulasi Total */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
-            {/* Total Pemasukan Akumulasi */}
+            {/* Total Penerimaan Akumulasi */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Total Pemasukan</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase">Total Penerimaan</span>
                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                   <ArrowDownLeft className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-2xl font-extrabold text-emerald-600">{formatRupiah(totalIncome)}</div>
-              <div className="text-[11px] text-slate-400 mt-1">Akumulasi Seluruh Omset Tercatat</div>
+              <div className="text-[11px] text-slate-400 mt-1">Akumulasi Seluruh Penerimaan Kas & Transfer</div>
             </div>
 
             {/* Total Pengeluaran Akumulasi */}
@@ -243,7 +305,7 @@ export default function DashboardPage() {
               <div className={`text-2xl font-extrabold ${netBalance >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
                 {formatRupiah(netBalance)}
               </div>
-              <div className="text-[11px] text-slate-400 mt-1">Pemasukan - Pengeluaran</div>
+              <div className="text-[11px] text-slate-400 mt-1">Penerimaan - Pengeluaran</div>
             </div>
 
           </div>
@@ -252,29 +314,33 @@ export default function DashboardPage() {
           <div className="bg-slate-100/80 p-4 rounded-2xl border border-slate-200/80 space-y-3">
             <div className="flex justify-between items-center px-1">
               <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Ringkasan Hari Ini ({todayStr})</span>
-              <span className="text-[11px] font-medium text-slate-500">{todayTxs.length} Transaksi Hari Ini</span>
+              <span className="text-[11px] font-medium text-slate-500">{todayTxs.length} Transaksi Kas/Bank Hari Ini</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Omset Hari Ini */}
+              {/* Omzet Hari Ini */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Omset Hari Ini</span>
-                <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeTotal)}</div>
-                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Laundry & Reparasi</div>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Omzet Hari Ini</span>
+                <div className="text-xl font-black text-slate-800">{formatRupiah(todayOmzetTotal)}</div>
+                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                  {todayOmzetRecord
+                    ? `Laundry: ${formatRupiah(todayOmzetRecord.omzet_laundry || 0)} | Reparasi: ${formatRupiah(todayOmzetRecord.omzet_reparasi || 0)}`
+                    : 'Laundry & Reparasi (Rekap Pengelola)'}
+                </div>
               </div>
 
               {/* Cash Hari Ini */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Kasir Tunai (Cash)</span>
                 <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeCash)}</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Uang Kas Masuk</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Penerimaan Kas Masuk</div>
               </div>
 
               {/* Transfer Hari Ini */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Transfer Bank / QRIS</span>
                 <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeTransfer)}</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Masuk Rekening Bank</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Penerimaan Masuk Rekening</div>
               </div>
 
               {/* Pengeluaran Hari Ini */}
@@ -299,12 +365,21 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      {/* Input Modal */}
+      {/* Omzet Modal (Pengelola) */}
+      <OmzetModal
+        isOpen={isOmzetModalOpen}
+        onClose={() => setIsOmzetModalOpen(false)}
+        onSuccess={handleOmzetSuccess}
+        userProfile={userProfile}
+      />
+
+      {/* Transaction Modal (Pemilik) */}
       <TransactionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
         onSuccess={handleTransactionSuccess}
         userProfile={userProfile}
+        defaultType={transactionModalType}
       />
     </div>
   );

@@ -99,7 +99,28 @@ export default function TransactionTable({
 
                     {/* Category & Notes */}
                     <td className="py-3.5 px-4 max-w-xs">
-                      <div className="font-semibold text-slate-800">{getCategoryLabel(tx.sub_category)}</div>
+                      <div className="flex flex-wrap items-center gap-1 mb-1">
+                        {tx.bank_account && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                            {tx.bank_account === 'rekening_laundry' ? 'Rekening Laundry' : 'Rekening Reparasi'}
+                          </span>
+                        )}
+                        {tx.business_unit && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                            {tx.business_unit === 'laundry' ? 'Unit Laundry' : 'Unit Reparasi'}
+                          </span>
+                        )}
+                        {tx.cost_type && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            {tx.cost_type === 'fixed_cost' ? 'Fixed Cost' : 'Variable Cost'}
+                          </span>
+                        )}
+                        {tx.sub_category && (
+                          <span className="font-semibold text-slate-800 text-xs">
+                            {getCategoryLabel(tx.sub_category)}
+                          </span>
+                        )}
+                      </div>
                       {tx.notes && <div className="text-[11px] text-slate-400 truncate">{tx.notes}</div>}
                     </td>
 

@@ -38,6 +38,9 @@ export async function createTransactionInSupabase(
           payment_method: tx.payment_method,
           amount: tx.amount,
           notes: tx.notes || null,
+          business_unit: tx.business_unit || 'laundry',
+          bank_account: tx.bank_account || null,
+          cost_type: tx.cost_type || null,
         },
       ])
       .select()

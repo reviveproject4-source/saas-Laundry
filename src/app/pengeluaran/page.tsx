@@ -120,19 +120,25 @@ export default function PengeluaranPage() {
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Pengeluaran & Disetor</h2>
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Pengeluaran Operasional</h2>
               <p className="text-xs text-slate-500">
-                Pencatatan biaya operasional, pembelian bahan, dan setoran kepada investor.
+                Pencatatan pengeluaran biaya (Fixed Cost & Variable Cost) untuk unit Laundry dan Reparasi oleh Pemilik.
               </p>
             </div>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>+ Input Pengeluaran / Disetor</span>
-            </button>
+            {userProfile?.role === 'investor' ? (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Input Pengeluaran</span>
+              </button>
+            ) : (
+              <div className="text-xs text-slate-400 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
+                Pencatatan pengeluaran dikelola oleh Pemilik.
+              </div>
+            )}
           </div>
 
           {/* Widgets */}
