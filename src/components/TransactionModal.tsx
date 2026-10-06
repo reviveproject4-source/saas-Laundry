@@ -487,9 +487,17 @@ export default function TransactionModal({
 
           {/* Security & Audit Badge */}
           <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-start space-x-2 text-[11px] text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isPengelola ? 'text-emerald-600' : 'text-amber-600'}`} />
             <span>
-              Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pemilik</strong> dan langsung tercatat di mutasi rekening.
+              {isPengelola ? (
+                <>
+                  Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pengelola</strong> ({type === 'penerimaan' ? 'Kasir Tunai / Cash' : 'Biaya Operasional'}).
+                </>
+              ) : (
+                <>
+                  Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pemilik</strong> ({type === 'penerimaan' ? 'Mutasi Rekening Bank' : 'Pengeluaran/Biaya'}).
+                </>
+              )}
             </span>
           </div>
 
@@ -506,7 +514,9 @@ export default function TransactionModal({
               {submitting
                 ? 'Menyimpan Transaksi...'
                 : type === 'penerimaan'
-                ? 'Simpan Penerimaan Rekening'
+                ? isPengelola
+                  ? 'Simpan Penerimaan Cash'
+                  : 'Simpan Penerimaan Rekening'
                 : 'Simpan Pengeluaran Operasional'}
             </span>
           </button>
