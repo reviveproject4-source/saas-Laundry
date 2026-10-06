@@ -231,13 +231,35 @@ export default function DashboardPage() {
             </div>
 
             {userProfile?.role === 'pengelola' ? (
-              <button
-                onClick={() => setIsOmzetModalOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ Input Omzet Harian</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setIsOmzetModalOpen(true)}
+                  className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>+ Input Omzet Harian</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setTransactionModalType('penerimaan');
+                    setIsTransactionModalOpen(true);
+                  }}
+                  className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>+ Input Penerimaan Cash</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setTransactionModalType('pengeluaran');
+                    setIsTransactionModalOpen(true);
+                  }}
+                  className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>+ Input Pengeluaran</span>
+                </button>
+              </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <button
@@ -248,7 +270,7 @@ export default function DashboardPage() {
                   className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>+ Input Penerimaan</span>
+                  <span>+ Input Penerimaan Rekening</span>
                 </button>
                 <button
                   onClick={() => {

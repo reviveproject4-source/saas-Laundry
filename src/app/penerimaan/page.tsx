@@ -116,7 +116,7 @@ export default function PenerimaanPage() {
             <div>
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Penerimaan Uang</h2>
               <p className="text-xs text-slate-500">
-                Pencatatan mutasi penerimaan transfer rekening yang dikelola oleh Pemilik.
+                Pencatatan uang masuk: Transfer Rekening (oleh Pemilik) dan Kas Tunai Kasir (oleh Pengelola).
               </p>
             </div>
 
@@ -129,9 +129,13 @@ export default function PenerimaanPage() {
                 <span>+ Input Penerimaan Rekening</span>
               </button>
             ) : (
-              <div className="text-xs text-slate-400 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
-                Pencatatan rekening penerimaan dikelola oleh Pemilik.
-              </div>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Input Penerimaan Cash</span>
+              </button>
             )}
           </div>
 

@@ -61,15 +61,15 @@ export default function TransactionModal({
 
   if (!isOpen) return null;
 
-  // Role Guard: Hanya Pemilik (investor) yang boleh menggunakan form transaksi penerimaan/pengeluaran
-  if (userProfile?.role !== 'investor') {
+  // Role Guard: Pemilik dan Pengelola boleh mengakses form transaksi
+  if (!userProfile || (userProfile.role !== 'investor' && userProfile.role !== 'pengelola')) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
         <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 text-center space-y-4">
           <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
           <h3 className="font-bold text-slate-800 text-base">Akses Ditolak</h3>
           <p className="text-xs text-slate-500">
-            Form pencatatan Penerimaan Rekening dan Pengeluaran hanya dapat diakses oleh peran <strong>Pemilik</strong>.
+            Sesi pengguna tidak memiliki izin untuk mencatat transaksi.
           </p>
           <button
             onClick={onClose}
@@ -81,6 +81,8 @@ export default function TransactionModal({
       </div>
     );
   }
+
+  const isPengelola = userProfile.role === 'pengelola';
 
   // Format Helper
   const formatInputRupiah = (val: string) => {
@@ -109,7 +111,8 @@ export default function TransactionModal({
       return;
     }
 
-    if (type === 'penerimaan' && !reference.trim()) {
+    // Pemilik wajib isi bukti transfer untuk penerimaan rekening
+    if (type === 'penerimaan' && !isPengelola && !reference.trim()) {
       setErrorMessage('Harap isi referensi / bukti pembayaran transfer.');
       return;
     }
@@ -124,23 +127,25 @@ export default function TransactionModal({
 
       const combinedNotes =
         type === 'penerimaan'
-          ? reference.trim() + (notes.trim() ? ` - ${notes.trim()}` : '')
+          ? isPengelola
+            ? (reference.trim() ? reference.trim() + (notes.trim() ? ` - ${notes.trim()}` : '') : notes.trim())
+            : reference.trim() + (notes.trim() ? ` - ${notes.trim()}` : '')
           : notes.trim();
 
       const payload = {
         tenant_id: userProfile.tenant_id,
         created_by_user_id: userProfile.id,
         creator_role: userProfile.role,
-        creator_name: userProfile.full_name || 'Pemilik Trio R',
+        creator_name: userProfile.full_name || (isPengelola ? 'Pengelola Trio R' : 'Pemilik Trio R'),
         transaction_date: date,
         type: type,
         amount: parsedAmount,
         notes: combinedNotes || null,
         // Kolom spesifik Penerimaan
-        payment_method: (type === 'penerimaan' ? 'transfer' : 'cash') as 'transfer' | 'cash',
-        bank_account: type === 'penerimaan' ? bankAccount : null,
+        payment_method: (type === 'penerimaan' ? (isPengelola ? 'cash' : 'transfer') : 'cash') as 'transfer' | 'cash',
+        bank_account: type === 'penerimaan' ? (isPengelola ? null : bankAccount) : null,
         // Kolom spesifik Pengeluaran & Unit
-        business_unit: type === 'penerimaan' ? (bankAccount === 'rekening_reparasi' ? 'reparasi' : 'laundry') : businessUnit,
+        business_unit: type === 'penerimaan' ? (isPengelola ? businessUnit : (bankAccount === 'rekening_reparasi' ? 'reparasi' : 'laundry')) : businessUnit,
         cost_type: type === 'pengeluaran' ? costType : null,
       };
 
@@ -174,10 +179,22 @@ export default function TransactionModal({
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
           <div>
             <h3 className="font-bold text-slate-800 text-lg">
-              {type === 'penerimaan' ? 'Input Penerimaan Rekening' : 'Input Pengeluaran Operasional'}
+              {type === 'penerimaan'
+                ? isPengelola
+                  ? 'Input Penerimaan Cash Kasir'
+                  : 'Input Penerimaan Rekening'
+                : 'Input Pengeluaran Operasional'}
             </h3>
             <p className="text-xs text-slate-500">
-              Pencatatan arus uang resmi (Peran: <span className="font-semibold text-amber-700 uppercase">Pemilik</span>)
+              Pencatatan arus uang resmi (Peran:{' '}
+              <span
+                className={`font-semibold uppercase ${
+                  isPengelola ? 'text-emerald-700' : 'text-amber-700'
+                }`}
+              >
+                {isPengelola ? 'Pengelola' : 'Pemilik'}
+              </span>
+              )
             </p>
           </div>
           <button
@@ -213,7 +230,7 @@ export default function TransactionModal({
                 }`}
               >
                 <CreditCard className="w-3.5 h-3.5" />
-                <span>Penerimaan (Uang Masuk)</span>
+                <span>{isPengelola ? 'Penerimaan Cash' : 'Penerimaan Transfer'}</span>
               </button>
               <button
                 type="button"
@@ -246,60 +263,120 @@ export default function TransactionModal({
           {/* ===================== MODE PENERIMAAN ===================== */}
           {type === 'penerimaan' && (
             <>
-              {/* Rekening Penerimaan */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Rekening Penerimaan (Uang yang Menerima)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setBankAccount('rekening_laundry')}
-                    className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
-                      bankAccount === 'rekening_laundry'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-1.5 font-bold text-xs">
-                      <Building2 className="w-4 h-4 text-emerald-600" />
-                      <span>Rekening Laundry</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">Unit Usaha: Laundry</span>
-                  </button>
+              {isPengelola ? (
+                <>
+                  {/* Pilihan Unit Usaha Cash Laundry vs Cash Reparasi */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                      Penerimaan Tunai (Cash Kasir)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBusinessUnit('laundry')}
+                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                          businessUnit === 'laundry'
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-1.5 font-bold text-xs">
+                          <Building2 className="w-4 h-4 text-emerald-600" />
+                          <span>Cash Laundry</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1">Uang Tunai Kasir Laundry</span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setBankAccount('rekening_reparasi')}
-                    className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
-                      bankAccount === 'rekening_reparasi'
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-500'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-1.5 font-bold text-xs">
-                      <Wrench className="w-4 h-4 text-indigo-600" />
-                      <span>Rekening Reparasi</span>
+                      <button
+                        type="button"
+                        onClick={() => setBusinessUnit('reparasi')}
+                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                          businessUnit === 'reparasi'
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-1.5 font-bold text-xs">
+                          <Wrench className="w-4 h-4 text-indigo-600" />
+                          <span>Cash Reparasi</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1">Uang Tunai Kasir Reparasi</span>
+                      </button>
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1">Unit Usaha: Reparasi</span>
-                  </button>
-                </div>
-              </div>
+                  </div>
 
-              {/* Referensi / Bukti Transfer */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Referensi / Bukti Pembayaran Transfer
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Transfer BCA an Budi / Ref #12345"
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
+                  {/* Keterangan Kasir */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                      Keterangan Kasir (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Kas masuk shift pagi"
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Rekening Penerimaan (Pemilik) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                      Rekening Penerimaan (Uang yang Menerima)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBankAccount('rekening_laundry')}
+                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                          bankAccount === 'rekening_laundry'
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-1.5 font-bold text-xs">
+                          <Building2 className="w-4 h-4 text-emerald-600" />
+                          <span>Rekening Laundry</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1">Unit Usaha: Laundry</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBankAccount('rekening_reparasi')}
+                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                          bankAccount === 'rekening_reparasi'
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-1.5 font-bold text-xs">
+                          <Wrench className="w-4 h-4 text-indigo-600" />
+                          <span>Rekening Reparasi</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1">Unit Usaha: Reparasi</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Referensi / Bukti Transfer */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                      Referensi / Bukti Pembayaran Transfer
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Transfer BCA an Budi / Ref #12345"
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                </>
+              )}
             </>
           )}
 
