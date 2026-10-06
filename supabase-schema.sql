@@ -311,13 +311,24 @@ CREATE POLICY "Daily Omzet Pengelola Delete" ON public.daily_omzet
         AND public.get_auth_user_role() = 'pengelola'
     );
 
--- B. RLS UNTUK public.transactions (HANYA PEMILIK/INVESTOR YANG BISA INSERT PENERIMAAN & PENGELUARAN)
+-- B. RLS UNTUK public.transactions (PEMILIK & PENGELOLA SESUAI TUGASNYA)
 DROP POLICY IF EXISTS "Transactions Tenant Insert" ON public.transactions;
 CREATE POLICY "Transactions Tenant Insert" ON public.transactions
     FOR INSERT TO authenticated 
     WITH CHECK (
         tenant_id = public.get_auth_user_tenant_id() 
         AND created_by_user_id = auth.uid()
-        AND public.get_auth_user_role() = 'investor'
+        AND (
+            (public.get_auth_user_role() = 'investor')
+            OR
+            (
+                public.get_auth_user_role() = 'pengelola'
+                AND (
+                    (type = 'penerimaan' AND payment_method = 'cash')
+                    OR
+                    (type = 'pengeluaran')
+                )
+            )
+        )
     );
 

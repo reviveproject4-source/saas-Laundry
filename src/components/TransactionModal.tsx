@@ -139,6 +139,7 @@ export default function TransactionModal({
         creator_name: userProfile.full_name || (isPengelola ? 'Pengelola Trio R' : 'Pemilik Trio R'),
         transaction_date: date,
         type: type,
+        sub_category: (type === 'penerimaan' ? (businessUnit === 'reparasi' ? 'reparasi' : 'laundry') : 'operasional') as any,
         amount: parsedAmount,
         notes: combinedNotes || null,
         // Kolom spesifik Penerimaan
