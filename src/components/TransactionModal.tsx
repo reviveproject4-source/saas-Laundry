@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Transaction, TransactionType, BankAccount, BusinessUnit, CostType, UserProfile } from '@/lib/types';
+import { Transaction, TransactionType, BankAccount, BusinessUnit, CostType, SubCategory, UserProfile } from '@/lib/types';
 import { createTransactionInSupabase } from '@/lib/transactions';
-import { X, CreditCard, ShoppingBag, ShieldAlert, Loader2, AlertCircle, Building2, Wrench, ShieldCheck } from 'lucide-react';
+import { X, CreditCard, ShoppingBag, ShieldAlert, Loader2, AlertCircle, Building2, Wrench, ShieldCheck, Target } from 'lucide-react';
 import { formatRupiah } from '@/lib/formatters';
 
 interface TransactionModalProps {
@@ -12,6 +12,7 @@ interface TransactionModalProps {
   onSuccess: (newTx: Transaction) => void;
   userProfile: UserProfile | null;
   defaultType?: TransactionType;
+  defaultSubCategory?: SubCategory;
 }
 
 export default function TransactionModal({
@@ -20,6 +21,7 @@ export default function TransactionModal({
   onSuccess,
   userProfile,
   defaultType = 'penerimaan',
+  defaultSubCategory,
 }: TransactionModalProps) {
   const getTodayStr = () => {
     const d = new Date();
@@ -39,6 +41,7 @@ export default function TransactionModal({
   const [reference, setReference] = useState<string>('');
 
   // Field khusus Pengeluaran
+  const [isSetoranInvestor, setIsSetoranInvestor] = useState<boolean>(defaultSubCategory === 'disetor_investor');
   const [businessUnit, setBusinessUnit] = useState<BusinessUnit>('laundry');
   const [costType, setCostType] = useState<CostType>('variable_cost');
 
@@ -51,13 +54,14 @@ export default function TransactionModal({
   useEffect(() => {
     if (isOpen) {
       setType(defaultType);
+      setIsSetoranInvestor(defaultSubCategory === 'disetor_investor');
       setRawAmount('');
       setNotes('');
       setReference('');
       setErrorMessage(null);
       setDate(todayStr);
     }
-  }, [isOpen, defaultType, todayStr]);
+  }, [isOpen, defaultType, defaultSubCategory, todayStr]);
 
   if (!isOpen) return null;
 
@@ -117,8 +121,8 @@ export default function TransactionModal({
       return;
     }
 
-    if (type === 'pengeluaran' && !notes.trim()) {
-      setErrorMessage('Harap isi keterangan pengeluaran.');
+    if (type === 'pengeluaran' && !isSetoranInvestor && !notes.trim()) {
+      setErrorMessage('Harap isi keterangan pengeluaran operasional.');
       return;
     }
 
@@ -132,6 +136,18 @@ export default function TransactionModal({
             : reference.trim() + (notes.trim() ? ` - ${notes.trim()}` : '')
           : notes.trim();
 
+      const isSetoran = type === 'pengeluaran' && isSetoranInvestor;
+      const computedSubCategory =
+        type === 'penerimaan'
+          ? businessUnit === 'reparasi'
+            ? 'reparasi'
+            : 'laundry'
+          : isSetoran
+          ? 'disetor_investor'
+          : 'operasional';
+
+      const defaultSetoranNote = isSetoran ? 'Setoran Target Bulanan ke Investor' : null;
+
       const payload = {
         tenant_id: userProfile.tenant_id,
         created_by_user_id: userProfile.id,
@@ -139,15 +155,15 @@ export default function TransactionModal({
         creator_name: userProfile.full_name || (isPengelola ? 'Pengelola Trio R' : 'Pemilik Trio R'),
         transaction_date: date,
         type: type,
-        sub_category: (type === 'penerimaan' ? (businessUnit === 'reparasi' ? 'reparasi' : 'laundry') : 'operasional') as any,
+        sub_category: computedSubCategory as any,
         amount: parsedAmount,
-        notes: combinedNotes || null,
+        notes: (type === 'penerimaan' ? combinedNotes : notes.trim()) || defaultSetoranNote,
         // Kolom spesifik Penerimaan
         payment_method: (type === 'penerimaan' ? (isPengelola ? 'cash' : 'transfer') : 'cash') as 'transfer' | 'cash',
         bank_account: type === 'penerimaan' ? (isPengelola ? null : bankAccount) : null,
         // Kolom spesifik Pengeluaran & Unit
-        business_unit: type === 'penerimaan' ? (isPengelola ? businessUnit : (bankAccount === 'rekening_reparasi' ? 'reparasi' : 'laundry')) : businessUnit,
-        cost_type: type === 'pengeluaran' ? costType : null,
+        business_unit: type === 'penerimaan' ? (isPengelola ? businessUnit : (bankAccount === 'rekening_reparasi' ? 'reparasi' : 'laundry')) : (isSetoran ? 'laundry' : businessUnit),
+        cost_type: type === 'pengeluaran' ? (isSetoran ? null : costType) : null,
       };
 
       const res = await createTransactionInSupabase(payload);
@@ -384,69 +400,127 @@ export default function TransactionModal({
           {/* ===================== MODE PENGELUARAN ===================== */}
           {type === 'pengeluaran' && (
             <>
-              {/* Business Unit */}
+              {/* Pilihan: Biaya Operasional vs Setoran Target ke Investor */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Business Unit</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Tujuan Pengeluaran
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setBusinessUnit('laundry')}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
-                      businessUnit === 'laundry'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Building2 className="w-4 h-4 text-emerald-600" />
-                    <span>Unit Laundry</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBusinessUnit('reparasi')}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
-                      businessUnit === 'reparasi'
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-500'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Wrench className="w-4 h-4 text-indigo-600" />
-                    <span>Unit Reparasi</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Cost Type */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Jenis Biaya (Cost Type)</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCostType('fixed_cost')}
+                    onClick={() => setIsSetoranInvestor(false)}
                     className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
-                      costType === 'fixed_cost'
-                        ? 'border-sky-500 bg-sky-50 text-sky-900 ring-2 ring-sky-500'
+                      !isSetoranInvestor
+                        ? 'border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-500'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <span className="font-bold text-xs">Fixed Cost</span>
-                    <span className="text-[10px] text-slate-500">Biaya Tetap (Sewa, Gaji Pokok)</span>
+                    <div className="flex items-center space-x-1.5 font-bold text-xs">
+                      <ShoppingBag className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Biaya Operasional</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1">
+                      Listrik, gas, sabun, sewa, sparepart
+                    </span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setCostType('variable_cost')}
+                    onClick={() => setIsSetoranInvestor(true)}
                     className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
-                      costType === 'variable_cost'
+                      isSetoranInvestor
                         ? 'border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-500'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <span className="font-bold text-xs">Variable Cost</span>
-                    <span className="text-[10px] text-slate-500">Biaya Variabel (Gas, Detergen, Part)</span>
+                    <div className="flex items-center space-x-1.5 font-bold text-xs">
+                      <Target className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Setoran ke Investor</span>
+                    </div>
+                    <span className="text-[10px] text-amber-700 font-medium mt-1">
+                      Target Tetap Rp 10 Juta / Bln
+                    </span>
                   </button>
                 </div>
               </div>
+
+              {isSetoranInvestor ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-1">
+                  <div className="font-bold flex items-center space-x-1 text-amber-800">
+                    <Target className="w-4 h-4 text-amber-600" />
+                    <span>Setoran Realisasi Target Investor</span>
+                  </div>
+                  <p className="text-[11px] text-amber-700 leading-relaxed">
+                    Pencatatan ini akan langsung dihitung sebagai realisasi <strong>Target Setoran Investor (Rp 10.000.000 / Bulan)</strong> dan otomatis mengurangi sisa target yang harus dipenuhi.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Business Unit */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Business Unit</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBusinessUnit('laundry')}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                          businessUnit === 'laundry'
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4 text-emerald-600" />
+                        <span>Unit Laundry</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBusinessUnit('reparasi')}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                          businessUnit === 'reparasi'
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Wrench className="w-4 h-4 text-indigo-600" />
+                        <span>Unit Reparasi</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Cost Type */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Jenis Biaya (Cost Type)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCostType('fixed_cost')}
+                        className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                          costType === 'fixed_cost'
+                            ? 'border-sky-500 bg-sky-50 text-sky-900 ring-2 ring-sky-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="font-bold text-xs">Fixed Cost</span>
+                        <span className="text-[10px] text-slate-500">Biaya Tetap (Sewa, Gaji Pokok)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCostType('variable_cost')}
+                        className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                          costType === 'variable_cost'
+                            ? 'border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-500'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="font-bold text-xs">Variable Cost</span>
+                        <span className="text-[10px] text-slate-500">Biaya Variabel (Gas, Detergen, Part)</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -457,7 +531,7 @@ export default function TransactionModal({
               <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">Rp</span>
               <input
                 type="text"
-                placeholder="Contoh: 1.200.000"
+                placeholder="Contoh: 1.000.000"
                 value={rawAmount}
                 onChange={(e) => setRawAmount(formatInputRupiah(e.target.value))}
                 required
@@ -474,14 +548,24 @@ export default function TransactionModal({
           {/* Catatan / Keterangan */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-              {type === 'pengeluaran' ? 'Keterangan Pengeluaran' : 'Catatan Tambahan (Opsional)'}
+              {type === 'pengeluaran'
+                ? isSetoranInvestor
+                  ? 'Catatan Setoran (Opsional)'
+                  : 'Keterangan Pengeluaran'
+                : 'Catatan Tambahan (Opsional)'}
             </label>
             <input
               type="text"
-              placeholder={type === 'pengeluaran' ? 'Contoh: Pembelian Gas LPG 3 tabung' : 'Catatan tambahan jika ada...'}
+              placeholder={
+                type === 'pengeluaran'
+                  ? isSetoranInvestor
+                    ? 'Contoh: Setoran tahap 1 transfer ke BCA pemilik'
+                    : 'Contoh: Pembelian Gas LPG 3 tabung'
+                  : 'Catatan tambahan jika ada...'
+              }
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              required={type === 'pengeluaran'}
+              required={type === 'pengeluaran' && !isSetoranInvestor}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
           </div>
@@ -492,11 +576,23 @@ export default function TransactionModal({
             <span>
               {isPengelola ? (
                 <>
-                  Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pengelola</strong> ({type === 'penerimaan' ? 'Kasir Tunai / Cash' : 'Biaya Operasional'}).
+                  Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pengelola</strong> (
+                  {type === 'penerimaan'
+                    ? 'Kasir Tunai / Cash'
+                    : isSetoranInvestor
+                    ? 'Setoran ke Investor'
+                    : 'Biaya Operasional'}
+                  ).
                 </>
               ) : (
                 <>
-                  Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pemilik</strong> ({type === 'penerimaan' ? 'Mutasi Rekening Bank' : 'Pengeluaran/Biaya'}).
+                  Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pemilik</strong> (
+                  {type === 'penerimaan'
+                    ? 'Mutasi Rekening Bank'
+                    : isSetoranInvestor
+                    ? 'Konfirmasi Setoran Investor'
+                    : 'Pengeluaran/Biaya'}
+                  ).
                 </>
               )}
             </span>
@@ -507,7 +603,11 @@ export default function TransactionModal({
             type="submit"
             disabled={submitting}
             className={`w-full flex items-center justify-center space-x-2 py-3 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50 ${
-              type === 'penerimaan' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+              type === 'penerimaan'
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : isSetoranInvestor
+                ? 'bg-amber-600 hover:bg-amber-700'
+                : 'bg-rose-600 hover:bg-rose-700'
             }`}
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -518,6 +618,8 @@ export default function TransactionModal({
                 ? isPengelola
                   ? 'Simpan Penerimaan Cash'
                   : 'Simpan Penerimaan Rekening'
+                : isSetoranInvestor
+                ? 'Simpan Setoran ke Investor'
                 : 'Simpan Pengeluaran Operasional'}
             </span>
           </button>

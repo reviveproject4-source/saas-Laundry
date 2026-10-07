@@ -115,11 +115,15 @@ export default function TransactionTable({
                             {tx.cost_type === 'fixed_cost' ? 'Fixed Cost' : 'Variable Cost'}
                           </span>
                         )}
-                        {tx.sub_category && (
+                        {tx.sub_category === 'disetor_investor' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                            ⭐ Setoran Target Investor
+                          </span>
+                        ) : tx.sub_category ? (
                           <span className="font-semibold text-slate-800 text-xs">
                             {getCategoryLabel(tx.sub_category)}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                       {tx.notes && <div className="text-[11px] text-slate-400 truncate">{tx.notes}</div>}
                     </td>

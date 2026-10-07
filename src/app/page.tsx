@@ -8,12 +8,28 @@ import RevenueChart from '@/components/RevenueChart';
 import TransactionTable from '@/components/TransactionTable';
 import TransactionModal from '@/components/TransactionModal';
 import OmzetModal from '@/components/OmzetModal';
-import { Transaction, TransactionType, UserProfile, TenantProfile, DailyOmzet } from '@/lib/types';
+import { Transaction, TransactionType, SubCategory, UserProfile, TenantProfile, DailyOmzet } from '@/lib/types';
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions, deleteTransactionFromSupabase } from '@/lib/transactions';
 import { fetchDailyOmzet } from '@/lib/omzet';
 import { formatRupiah } from '@/lib/formatters';
-import { PlusCircle, Banknote, CreditCard, ArrowUpRight, ArrowDownLeft, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import {
+  PlusCircle,
+  Banknote,
+  CreditCard,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Coins,
+  Clock,
+  Building2,
+  Wrench,
+  Target,
+  ShieldCheck,
+  TrendingUp,
+} from 'lucide-react';
 
 export default function DashboardPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -25,7 +41,14 @@ export default function DashboardPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [transactionModalType, setTransactionModalType] = useState<TransactionType>('penerimaan');
+  const [transactionModalSubCategory, setTransactionModalSubCategory] = useState<SubCategory | undefined>(undefined);
   const [isOmzetModalOpen, setIsOmzetModalOpen] = useState(false);
+
+  const handleOpenTransactionModal = (type: TransactionType, subCategory?: SubCategory) => {
+    setTransactionModalType(type);
+    setTransactionModalSubCategory(subCategory);
+    setIsTransactionModalOpen(true);
+  };
 
   const loadDataFromSupabase = async () => {
     setLoading(true);
@@ -136,9 +159,12 @@ export default function DashboardPage() {
   // 2. Calculations: Hari Ini (Berdasarkan tanggal lokal outlet)
   // A. Omzet Harian (Murni dari public.daily_omzet, BUKAN dari transactions)
   const todayOmzetRecord = dailyOmzetList.find((o) => o.date === todayStr);
-  const todayOmzetTotal = todayOmzetRecord
-    ? Number(todayOmzetRecord.omzet_laundry || 0) + Number(todayOmzetRecord.omzet_reparasi || 0)
-    : 0;
+  const todayOmzetLaundry = todayOmzetRecord ? Number(todayOmzetRecord.omzet_laundry || 0) : 0;
+  const todayOmzetReparasi = todayOmzetRecord ? Number(todayOmzetRecord.omzet_reparasi || 0) : 0;
+  const todayOmzetTotal = todayOmzetLaundry + todayOmzetReparasi;
+
+  // Rekap Terakhir yang Ada (Sebagai referensi jika hari ini belum diinput)
+  const lastRecordedOmzet = dailyOmzetList.length > 0 ? dailyOmzetList[0] : null;
 
   // B. Penerimaan & Pengeluaran Hari Ini (Murni dari public.transactions)
   const todayTxs = transactions.filter((t) => {
@@ -240,137 +266,268 @@ export default function DashboardPage() {
                   <span>+ Input Omzet Harian</span>
                 </button>
                 <button
-                  onClick={() => {
-                    setTransactionModalType('penerimaan');
-                    setIsTransactionModalOpen(true);
-                  }}
+                  onClick={() => handleOpenTransactionModal('penerimaan')}
                   className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>+ Input Penerimaan Cash</span>
                 </button>
                 <button
-                  onClick={() => {
-                    setTransactionModalType('pengeluaran');
-                    setIsTransactionModalOpen(true);
-                  }}
+                  onClick={() => handleOpenTransactionModal('pengeluaran')}
                   className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>+ Input Pengeluaran</span>
                 </button>
+                <button
+                  onClick={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
+                  className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition active:scale-95"
+                >
+                  <Target className="w-4 h-4" />
+                  <span>+ Setor ke Pemilik</span>
+                </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  onClick={() => {
-                    setTransactionModalType('penerimaan');
-                    setIsTransactionModalOpen(true);
-                  }}
+                  onClick={() => handleOpenTransactionModal('penerimaan')}
                   className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>+ Input Penerimaan Rekening</span>
                 </button>
                 <button
-                  onClick={() => {
-                    setTransactionModalType('pengeluaran');
-                    setIsTransactionModalOpen(true);
-                  }}
+                  onClick={() => handleOpenTransactionModal('pengeluaran')}
                   className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>+ Input Pengeluaran</span>
+                </button>
+                <button
+                  onClick={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
+                  className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition active:scale-95"
+                >
+                  <Target className="w-4 h-4" />
+                  <span>+ Catat Setoran Diterima</span>
                 </button>
               </div>
             )}
           </div>
 
           {/* Target Setoran 10jt Card */}
-          <TargetProgress totalDisetor={monthDisetor} totalPenarikan={monthPenarikan} />
+          <TargetProgress
+            totalDisetor={monthDisetor}
+            totalPenarikan={monthPenarikan}
+            role={userProfile?.role}
+            onOpenSetoranModal={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
+          />
 
-          {/* Primary Summary Widgets: Akumulasi Total */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            
-            {/* Total Penerimaan Akumulasi */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Total Penerimaan</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <ArrowDownLeft className="w-4 h-4" />
+          {/* ========================================================= */}
+          {/* SEKSI 1: REKAP OMZET OPERASIONAL HARIAN (MURNI daily_omzet) */}
+          {/* ========================================================= */}
+          <div className="bg-white rounded-2xl border-2 border-emerald-500/30 p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-extrabold text-slate-800 text-base">Rekap Omzet Operasional Harian</h3>
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Murni Daily Omzet (Bukan Penerimaan)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Nilai transaksi kotor layanan yang diinput Pengelola (Tersimpan di tabel <code className="text-emerald-700 font-mono font-bold">daily_omzet</code>). Terlihat transparan oleh Pemilik & Pengelola.
+                  </p>
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-emerald-600">{formatRupiah(totalIncome)}</div>
-              <div className="text-[11px] text-slate-400 mt-1">Akumulasi Seluruh Penerimaan Kas & Transfer</div>
+
+              {/* Status Input Hari Ini */}
+              <div>
+                {todayOmzetRecord ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                    Sudah Diinput ({todayStr})
+                  </span>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                      <Clock className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+                      Belum Diinput Hari Ini ({todayStr})
+                    </span>
+                    {userProfile?.role === 'pengelola' && (
+                      <button
+                        onClick={() => setIsOmzetModalOpen(true)}
+                        className="text-xs font-bold px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition active:scale-95 shadow-xs"
+                      >
+                        + Input Sekarang
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Total Pengeluaran Akumulasi */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Total Pengeluaran</span>
-                <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
-                  <ArrowUpRight className="w-4 h-4" />
+            {/* 3 Dedicated Metric Cards: Laundry, Reparasi, Total Omzet */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              
+              {/* Card 1: Omzet Laundry */}
+              <div className="bg-emerald-50/60 rounded-xl p-4 border border-emerald-100 hover:shadow-xs transition">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center">
+                    <Building2 className="w-3.5 h-3.5 mr-1.5 text-emerald-700" />
+                    Omzet Laundry
+                  </span>
+                  <span className="text-[10px] bg-emerald-100/80 text-emerald-800 px-2 py-0.5 rounded font-bold">Unit Laundry</span>
+                </div>
+                <div className="text-2xl font-black text-slate-800">
+                  {formatRupiah(todayOmzetLaundry)}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-1 font-medium">
+                  {todayOmzetRecord
+                    ? `Rekap tanggal ${todayStr}`
+                    : lastRecordedOmzet
+                    ? `Terakhir (${lastRecordedOmzet.date}): ${formatRupiah(lastRecordedOmzet.omzet_laundry || 0)}`
+                    : 'Belum ada data input'}
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-rose-600">{formatRupiah(totalExpense)}</div>
-              <div className="text-[11px] text-slate-400 mt-1">Operasional & Setoran Investor</div>
-            </div>
 
-            {/* Saldo Kas Bersih */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Saldo Kas Bersih</span>
-                <div className="p-2 bg-sky-50 text-sky-600 rounded-xl">
-                  <Banknote className="w-4 h-4" />
+              {/* Card 2: Omzet Reparasi */}
+              <div className="bg-indigo-50/60 rounded-xl p-4 border border-indigo-100 hover:shadow-xs transition">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center">
+                    <Wrench className="w-3.5 h-3.5 mr-1.5 text-indigo-700" />
+                    Omzet Reparasi
+                  </span>
+                  <span className="text-[10px] bg-indigo-100/80 text-indigo-800 px-2 py-0.5 rounded font-bold">Unit Reparasi</span>
+                </div>
+                <div className="text-2xl font-black text-slate-800">
+                  {formatRupiah(todayOmzetReparasi)}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-1 font-medium">
+                  {todayOmzetRecord
+                    ? `Rekap tanggal ${todayStr}`
+                    : lastRecordedOmzet
+                    ? `Terakhir (${lastRecordedOmzet.date}): ${formatRupiah(lastRecordedOmzet.omzet_reparasi || 0)}`
+                    : 'Belum ada data input'}
                 </div>
               </div>
-              <div className={`text-2xl font-extrabold ${netBalance >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
-                {formatRupiah(netBalance)}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-1">Penerimaan - Pengeluaran</div>
-            </div>
 
+              {/* Card 3: Total Omzet Hari Ini */}
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl p-4 text-white shadow-xs">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-100">
+                    Total Omzet Hari Ini
+                  </span>
+                  <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded font-bold">Laundry + Reparasi</span>
+                </div>
+                <div className="text-2xl font-black text-white">
+                  {formatRupiah(todayOmzetTotal)}
+                </div>
+                <div className="text-[11px] text-emerald-100 mt-1 font-medium">
+                  {todayOmzetRecord
+                    ? `Akumulasi 2 unit operasional hari ini`
+                    : lastRecordedOmzet
+                    ? `Total terakhir (${lastRecordedOmzet.date}): ${formatRupiah((lastRecordedOmzet.omzet_laundry || 0) + (lastRecordedOmzet.omzet_reparasi || 0))}`
+                    : 'Menunggu input harian pengelola'}
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          {/* Today Summary Widgets */}
-          <div className="bg-slate-100/80 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Ringkasan Hari Ini ({todayStr})</span>
-              <span className="text-[11px] font-medium text-slate-500">{todayTxs.length} Transaksi Kas/Bank Hari Ini</span>
+          {/* ========================================================= */}
+          {/* SEKSI 2: ARUS KAS MASUK & KELUAR (PENERIMAAN VS PENGELUARAN) */}
+          {/* ========================================================= */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-extrabold text-slate-800 text-base">Arus Penerimaan Kas & Mutasi Bank</h3>
+              <p className="text-xs text-slate-500">
+                Pencatatan uang masuk kasir/bank dan biaya operasional yang tercatat di buku transaksi (<code className="text-sky-700 font-mono font-bold">transactions</code>).
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Omzet Hari Ini */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Omzet Hari Ini</span>
-                <div className="text-xl font-black text-slate-800">{formatRupiah(todayOmzetTotal)}</div>
-                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">
-                  {todayOmzetRecord
-                    ? `Laundry: ${formatRupiah(todayOmzetRecord.omzet_laundry || 0)} | Reparasi: ${formatRupiah(todayOmzetRecord.omzet_reparasi || 0)}`
-                    : 'Laundry & Reparasi (Rekap Pengelola)'}
+            {/* Ringkasan Hari Ini */}
+            <div className="bg-slate-100/90 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+              <div className="flex justify-between items-center px-1">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Penerimaan & Biaya Hari Ini ({todayStr})</span>
+                <span className="text-[11px] font-medium text-slate-500">{todayTxs.length} Transaksi Kas/Bank Hari Ini</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Cash Hari Ini */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Kasir Tunai (Cash Hari Ini)</span>
+                  <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeCash)}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Uang Fisik Kas Masuk</div>
+                </div>
+
+                {/* Transfer Hari Ini */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Transfer Rekening / QRIS Hari Ini</span>
+                  <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeTransfer)}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Masuk Rekening Bank Pemilik</div>
+                </div>
+
+                {/* Pengeluaran Hari Ini */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Pengeluaran Biaya Hari Ini</span>
+                  <div className="text-xl font-black text-rose-600">{formatRupiah(todayExpenseTotal)}</div>
+                  <div className="text-[10px] text-rose-500 mt-0.5">Beban Operasional & Setoran</div>
+                </div>
+
+                {/* Total Uang Masuk Hari Ini */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Total Penerimaan Hari Ini</span>
+                  <div className="text-xl font-black text-emerald-600">{formatRupiah(todayIncomeCash + todayIncomeTransfer)}</div>
+                  <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Total Uang Masuk (Cash + Transfer)</div>
                 </div>
               </div>
+            </div>
 
-              {/* Cash Hari Ini */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Kasir Tunai (Cash)</span>
-                <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeCash)}</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Penerimaan Kas Masuk</div>
+            {/* Akumulasi Keseluruhan */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              
+              {/* Total Penerimaan Akumulasi */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-semibold text-slate-500 uppercase">Total Penerimaan (Akumulasi)</span>
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <ArrowDownLeft className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-extrabold text-emerald-600">{formatRupiah(totalIncome)}</div>
+                <div className="text-[11px] text-slate-400 mt-1">Akumulasi Seluruh Arus Uang Masuk</div>
               </div>
 
-              {/* Transfer Hari Ini */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Transfer Bank / QRIS</span>
-                <div className="text-xl font-black text-slate-800">{formatRupiah(todayIncomeTransfer)}</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">Penerimaan Masuk Rekening</div>
+              {/* Total Pengeluaran Akumulasi */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-semibold text-slate-500 uppercase">Total Pengeluaran (Akumulasi)</span>
+                  <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-extrabold text-rose-600">{formatRupiah(totalExpense)}</div>
+                <div className="text-[11px] text-slate-400 mt-1">Biaya Operasional Toko & Setoran</div>
               </div>
 
-              {/* Pengeluaran Hari Ini */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">Pengeluaran Hari Ini</span>
-                <div className="text-xl font-black text-rose-600">{formatRupiah(todayExpenseTotal)}</div>
-                <div className="text-[10px] text-rose-500 mt-0.5">Biaya Operasional</div>
+              {/* Saldo Kas Bersih */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-semibold text-slate-500 uppercase">Saldo Kas Bersih</span>
+                  <div className="p-2 bg-sky-50 text-sky-600 rounded-xl">
+                    <Banknote className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className={`text-2xl font-extrabold ${netBalance >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
+                  {formatRupiah(netBalance)}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">Penerimaan - Pengeluaran</div>
               </div>
+
             </div>
           </div>
 
@@ -395,13 +552,14 @@ export default function DashboardPage() {
         userProfile={userProfile}
       />
 
-      {/* Transaction Modal (Pemilik) */}
+      {/* Transaction Modal */}
       <TransactionModal
         isOpen={isTransactionModalOpen}
         onClose={() => setIsTransactionModalOpen(false)}
         onSuccess={handleTransactionSuccess}
         userProfile={userProfile}
         defaultType={transactionModalType}
+        defaultSubCategory={transactionModalSubCategory}
       />
     </div>
   );

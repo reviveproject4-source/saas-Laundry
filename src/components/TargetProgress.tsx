@@ -2,14 +2,17 @@
 
 import React from 'react';
 import { formatRupiah } from '@/lib/formatters';
-import { Target, CheckCircle2, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { UserRole } from '@/lib/types';
+import { Target, CheckCircle2, AlertCircle, ArrowUpRight, PlusCircle } from 'lucide-react';
 
 interface TargetProgressProps {
   totalDisetor: number;
   totalPenarikan: number;
+  role?: UserRole;
+  onOpenSetoranModal?: () => void;
 }
 
-export default function TargetProgress({ totalDisetor, totalPenarikan }: TargetProgressProps) {
+export default function TargetProgress({ totalDisetor, totalPenarikan, role, onOpenSetoranModal }: TargetProgressProps) {
   const TARGET_SETORAN = 10000000; // Tetap Rp 10.000.000 / bulan
   const percentage = Math.min(Math.round((totalDisetor / TARGET_SETORAN) * 100), 100);
   const remaining = Math.max(TARGET_SETORAN - totalDisetor, 0);
@@ -32,9 +35,25 @@ export default function TargetProgress({ totalDisetor, totalPenarikan }: TargetP
           </div>
         </div>
 
-        <div className="text-right">
-          <div className="text-2xl font-black text-white">{percentage}%</div>
-          <div className="text-xs text-slate-400 font-medium">Realisasi Bulan Ini</div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-right">
+            <div className="text-2xl font-black text-white">{percentage}%</div>
+            <div className="text-xs text-slate-400 font-medium">Realisasi Bulan Ini</div>
+          </div>
+
+          {onOpenSetoranModal && (
+            <button
+              onClick={onOpenSetoranModal}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 font-bold text-xs rounded-xl shadow-xs transition active:scale-95 ${
+                role === 'investor'
+                  ? 'bg-amber-400 hover:bg-amber-300 text-slate-900'
+                  : 'bg-sky-500 hover:bg-sky-400 text-white'
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>{role === 'investor' ? '+ Catat Setoran Diterima' : '+ Catat Setoran ke Pemilik'}</span>
+            </button>
+          )}
         </div>
       </div>
 
