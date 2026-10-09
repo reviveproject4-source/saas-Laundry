@@ -38,7 +38,7 @@ export default function Sidebar() {
 
   return (
     <aside className="w-full md:w-64 bg-white border-r border-slate-200 md:min-h-[calc(100vh-4rem)] p-4">
-      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-3 hidden md:block">
+      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider px-3 mb-3 hidden md:block">
         Navigasi Menu
       </div>
       <nav className="flex md:flex-col space-x-1 md:space-x-0 md:space-y-1.5 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
@@ -49,13 +49,13 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition shrink-0 ${
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-semibold transition shrink-0 ${
                 isActive
-                  ? 'bg-sky-50 text-sky-700 font-semibold shadow-xs border border-sky-100'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-sky-50 text-sky-700 font-bold shadow-xs border border-sky-200'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-sky-600' : 'text-slate-400'}`} />
+              <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-sky-600' : 'text-slate-500'}`} />
               <span>{item.label}</span>
             </Link>
           );

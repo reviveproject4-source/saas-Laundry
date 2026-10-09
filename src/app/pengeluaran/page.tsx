@@ -106,29 +106,29 @@ export default function PengeluaranPage() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
           
           {errorMessage && (
-            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-2xl flex items-center space-x-2">
+            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-2xl flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center space-x-2 shadow-xs">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-2xl flex items-center space-x-2 shadow-xs">
               <span>{successMessage}</span>
             </div>
           )}
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Pengeluaran Operasional</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Menu Pengeluaran Operasional</h2>
+              <p className="text-sm font-semibold text-slate-600 mt-1">
                 Pencatatan pengeluaran biaya (Fixed Cost & Variable Cost) untuk unit Laundry dan Reparasi.
               </p>
             </div>
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-95"
+              className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
               <span>+ Input Pengeluaran</span>
@@ -138,48 +138,48 @@ export default function PengeluaranPage() {
           {/* Widgets */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Total Pengeluaran</span>
-                <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
-                  <ArrowUpRight className="w-4 h-4" />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Total Pengeluaran</span>
+                <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                  <ArrowUpRight className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-xl font-black text-rose-600">{formatRupiah(totalExpense)}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Semua Jenis Pengeluaran</div>
+              <div className="text-2xl sm:text-3xl font-black text-rose-600">{formatRupiah(totalExpense)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Semua Jenis Pengeluaran</div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Operasional & Gas</span>
-                <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
-                  <ShoppingCart className="w-4 h-4" />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Operasional & Gas</span>
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                  <ShoppingCart className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-xl font-bold text-slate-800">{formatRupiah(totalOperasional)}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Gas, Detergen, Belanja</div>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(totalOperasional)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Gas, Detergen, Belanja</div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Disetor ke Investor</span>
-                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-                  <Send className="w-4 h-4" />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Disetor ke Investor</span>
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <Send className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-xl font-bold text-emerald-600">{formatRupiah(totalDisetor)}</div>
-              <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Dari Pengelola</div>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-600">{formatRupiah(totalDisetor)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-emerald-700 mt-1">Dari Pengelola</div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Penarikan Investor</span>
-                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                  <UserX className="w-4 h-4" />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Penarikan Investor</span>
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <UserX className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-xl font-bold text-indigo-600">{formatRupiah(totalPenarikan)}</div>
-              <div className="text-[10px] text-indigo-600 font-medium mt-0.5">Penarikan Uang (Prive)</div>
+              <div className="text-2xl sm:text-3xl font-black text-indigo-600">{formatRupiah(totalPenarikan)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-indigo-700 mt-1">Penarikan Uang (Prive)</div>
             </div>
 
           </div>

@@ -158,48 +158,48 @@ export default function OmzetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 my-8">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 my-8">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
           <div>
-            <h3 className="font-bold text-slate-800 text-lg">Input Omzet Harian</h3>
-            <p className="text-xs text-slate-500">
-              Rekap transaksi operasional harian di luar sistem (Peran: <span className="font-semibold text-emerald-700 uppercase">Pengelola</span>)
+            <h3 className="font-black text-slate-900 text-xl sm:text-2xl">Input Omzet Harian</h3>
+            <p className="text-sm font-semibold text-slate-600 mt-1">
+              Rekap transaksi operasional harian di luar sistem (Peran: <span className="font-black text-emerald-800 uppercase">Pengelola</span>)
             </p>
           </div>
           <button
             onClick={onClose}
             disabled={submitting}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Existing Record Indicator (One Day One Omzet) */}
         {isExisting && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-xs text-amber-800">
-            <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-xs sm:text-sm text-amber-900 font-medium">
+            <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold">Mode Koreksi/Update:</span> Rekap omzet untuk tanggal ini sudah pernah dicatat. Nilai yang Anda simpan akan memperbarui data tanggal ini.
+              <span className="font-black">Mode Koreksi/Update:</span> Rekap omzet untuk tanggal ini sudah pernah dicatat. Nilai yang Anda simpan akan memperbarui data tanggal ini.
             </div>
           </div>
         )}
 
         {/* Error Feedback */}
         {errorMessage && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-xl flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           
           {/* Tanggal */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal Rekap Omzet</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Tanggal Rekap Omzet</label>
             <div className="relative">
               <input
                 type="date"
@@ -207,13 +207,13 @@ export default function OmzetModal({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
-              <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <Calendar className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
             </div>
             {checkingDate && (
-              <p className="text-[10px] text-slate-400 mt-1 flex items-center space-x-1">
-                <Loader2 className="w-3 h-3 animate-spin" />
+              <p className="text-xs text-slate-500 mt-1 flex items-center space-x-1 font-semibold">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 <span>Memeriksa catatan tanggal terpilih...</span>
               </p>
             )}
@@ -221,64 +221,64 @@ export default function OmzetModal({
 
           {/* Omzet Laundry */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Omzet Laundry (Kiloan / Satuan)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+              <span className="absolute left-4 top-3 text-sm font-bold text-slate-400">Rp</span>
               <input
                 type="text"
                 placeholder="Contoh: 1.500.000"
                 value={omzetLaundry}
                 onChange={(e) => setOmzetLaundry(formatInputRupiah(e.target.value))}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             {omzetLaundry && (
-              <p className="text-[11px] text-emerald-600 font-medium mt-1">
-                {formatRupiah(parseInputToNumber(omzetLaundry))}
+              <p className="text-xs sm:text-sm text-emerald-700 font-bold mt-1.5">
+                Terbaca: {formatRupiah(parseInputToNumber(omzetLaundry))}
               </p>
             )}
           </div>
 
           {/* Omzet Reparasi */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Omzet Reparasi (Mesin / Pakaian)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+              <span className="absolute left-4 top-3 text-sm font-bold text-slate-400">Rp</span>
               <input
                 type="text"
                 placeholder="Contoh: 500.000"
                 value={omzetReparasi}
                 onChange={(e) => setOmzetReparasi(formatInputRupiah(e.target.value))}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             {omzetReparasi && (
-              <p className="text-[11px] text-emerald-600 font-medium mt-1">
-                {formatRupiah(parseInputToNumber(omzetReparasi))}
+              <p className="text-xs sm:text-sm text-emerald-700 font-bold mt-1.5">
+                Terbaca: {formatRupiah(parseInputToNumber(omzetReparasi))}
               </p>
             )}
           </div>
 
           {/* Catatan */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Catatan Operasional (Opsional)</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Catatan Operasional (Opsional)</label>
             <input
               type="text"
               placeholder="Contoh: Rekap kasir shift 1 & 2 lancar"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           {/* Domain Notice */}
-          <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-start space-x-2 text-[11px] text-slate-500">
-            <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-            <span>
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-start space-x-2.5 text-xs text-slate-600">
+            <Info className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+            <span className="font-medium">
               Omzet adalah rekap transaksi kotor operasional di luar SaaS. Data ini <strong>tidak mengubah saldo kas atau penerimaan rekening</strong>.
             </span>
           </div>
@@ -287,9 +287,9 @@ export default function OmzetModal({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full flex items-center justify-center space-x-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50"
+            className="w-full flex items-center justify-center space-x-2 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50"
           >
-            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
             <span>
               {submitting
                 ? 'Menyimpan...'

@@ -33,29 +33,29 @@ export default function Navbar({ userProfile, tenantProfile, currentRole }: Navb
               />
             </div>
             <div>
-              <h1 className="font-bold text-slate-800 text-base sm:text-lg leading-tight">{outletName}</h1>
-              <p className="text-[11px] text-slate-500 font-medium">SaaS Keuangan Investor & Pengelola</p>
+              <h1 className="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">{outletName}</h1>
+              <p className="text-xs text-slate-600 font-semibold">SaaS Keuangan Investor & Pengelola</p>
             </div>
           </div>
 
           {/* Role Indicator & User Name */}
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-              <span className="text-xs text-slate-500 font-medium hidden sm:inline">User:</span>
-              <span className="text-xs font-bold text-slate-700 max-w-[120px] sm:max-w-none truncate">{userName}</span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+            <div className="flex items-center space-x-2.5 bg-slate-100/90 px-3.5 py-1.5 rounded-xl border border-slate-200">
+              <span className="text-sm text-slate-600 font-medium hidden sm:inline">User:</span>
+              <span className="text-sm font-extrabold text-slate-800 max-w-[140px] sm:max-w-none truncate">{userName}</span>
+              <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs sm:text-sm font-bold ${
                 activeRole === 'investor' 
-                  ? 'bg-amber-100 text-amber-800 border border-amber-300' 
-                  : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                  : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
               }`}>
                 {activeRole === 'investor' ? (
                   <>
-                    <ShieldCheck className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                    <ShieldCheck className="w-4 h-4 mr-1 text-amber-600" />
                     Investor
                   </>
                 ) : (
                   <>
-                    <UserCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                    <UserCheck className="w-4 h-4 mr-1 text-emerald-600" />
                     Pengelola
                   </>
                 )}

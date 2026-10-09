@@ -51,13 +51,13 @@ export default function LoginPage() {
               className="object-contain"
             />
           </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Trio R Healthy Laundry</h1>
-          <p className="text-xs text-slate-500 font-medium">Sistem Informasi Keuangan & Operasional Outlet</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Trio R Healthy Laundry</h1>
+          <p className="text-sm font-semibold text-slate-600">Sistem Informasi Keuangan & Operasional Outlet</p>
         </div>
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-2xl text-center">
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-2xl text-center">
             {errorMessage}
           </div>
         )}
@@ -67,7 +67,7 @@ export default function LoginPage() {
           
           {/* Email Input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Alamat Email</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Alamat Email</label>
             <div className="relative">
               <input
                 type="email"
@@ -75,15 +75,15 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
             </div>
           </div>
 
           {/* Password Input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Kata Sandi (Password)</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Kata Sandi (Password)</label>
             <div className="relative">
               <input
                 type="password"
@@ -91,9 +91,9 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 tracking-wider"
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 tracking-wider"
               />
-              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <KeyRound className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
             </div>
           </div>
 
@@ -101,21 +101,21 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full flex items-center justify-center space-x-2 py-3.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-2xl shadow-md transition active:scale-98 disabled:opacity-50"
+            className="w-full flex items-center justify-center space-x-2 py-3.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition active:scale-98 disabled:opacity-50"
           >
             {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <>
                 <span>Masuk ke Akun</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-5 h-5" />
               </>
             )}
           </button>
         </form>
 
         {/* Security Note */}
-        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-2 text-[11px] text-slate-500">
+        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-2.5 text-xs text-slate-600 font-medium">
           <Lock className="w-4 h-4 text-sky-600 shrink-0" />
           <span>Akses sistem aman berbasis peran (Role: Investor & Pengelola).</span>
         </div>

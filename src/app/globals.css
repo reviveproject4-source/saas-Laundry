@@ -7,8 +7,22 @@
   --foreground: #0f172a;
 }
 
+html {
+  /* Skala font dasar dinaikkan agar nyaman dibaca mata 50+ tahun */
+  font-size: 18px;
+  scroll-behavior: smooth;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Keterbacaan input dan tombol */
+input, select, textarea, button {
+  font-family: inherit;
 }

@@ -190,23 +190,23 @@ export default function TransactionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 my-8">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 my-8">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
           <div>
-            <h3 className="font-bold text-slate-800 text-lg">
+            <h3 className="font-black text-slate-900 text-xl sm:text-2xl">
               {type === 'penerimaan'
                 ? isPengelola
                   ? 'Input Penerimaan Cash Kasir'
                   : 'Input Penerimaan Rekening'
                 : 'Input Pengeluaran Operasional'}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-semibold text-slate-600 mt-1">
               Pencatatan arus uang resmi (Peran:{' '}
               <span
-                className={`font-semibold uppercase ${
-                  isPengelola ? 'text-emerald-700' : 'text-amber-700'
+                className={`font-black uppercase ${
+                  isPengelola ? 'text-emerald-800' : 'text-amber-800'
                 }`}
               >
                 {isPengelola ? 'Pengelola' : 'Pemilik'}
@@ -217,48 +217,48 @@ export default function TransactionModal({
           <button
             onClick={onClose}
             disabled={submitting}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Error Feedback Banner */}
         {errorMessage && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold rounded-xl flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           
           {/* Toggle Jenis: Penerimaan vs Pengeluaran */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Jenis Pencatatan</label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Jenis Pencatatan</label>
+            <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl">
               <button
                 type="button"
                 onClick={() => setType('penerimaan')}
-                className={`py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-1.5 ${
+                className={`py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center space-x-2 ${
                   type === 'penerimaan'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <CreditCard className="w-3.5 h-3.5" />
+                <CreditCard className="w-4 h-4" />
                 <span>{isPengelola ? 'Penerimaan Cash' : 'Penerimaan Transfer'}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setType('pengeluaran')}
-                className={`py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-1.5 ${
+                className={`py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center space-x-2 ${
                   type === 'pengeluaran'
                     ? 'bg-rose-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <ShoppingBag className="w-3.5 h-3.5" />
+                <ShoppingBag className="w-4 h-4" />
                 <span>Pengeluaran (Biaya)</span>
               </button>
             </div>
@@ -266,14 +266,14 @@ export default function TransactionModal({
 
           {/* Tanggal Transaksi */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal Transaksi</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Tanggal Transaksi</label>
             <input
               type="date"
               max={todayStr}
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
           </div>
 
@@ -284,47 +284,47 @@ export default function TransactionModal({
                 <>
                   {/* Pilihan Unit Usaha Cash Laundry vs Cash Reparasi */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Penerimaan Tunai (Cash Kasir)
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setBusinessUnit('laundry')}
-                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                           businessUnit === 'laundry'
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex items-center space-x-1.5 font-bold text-xs">
-                          <Building2 className="w-4 h-4 text-emerald-600" />
+                        <div className="flex items-center space-x-2 font-black text-sm">
+                          <Building2 className="w-5 h-5 text-emerald-600" />
                           <span>Cash Laundry</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 mt-1">Uang Tunai Kasir Laundry</span>
+                        <span className="text-xs font-semibold text-slate-600 mt-1.5">Uang Tunai Kasir Laundry</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setBusinessUnit('reparasi')}
-                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                           businessUnit === 'reparasi'
-                            ? 'border-indigo-500 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-950 ring-2 ring-indigo-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex items-center space-x-1.5 font-bold text-xs">
-                          <Wrench className="w-4 h-4 text-indigo-600" />
+                        <div className="flex items-center space-x-2 font-black text-sm">
+                          <Wrench className="w-5 h-5 text-indigo-600" />
                           <span>Cash Reparasi</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 mt-1">Uang Tunai Kasir Reparasi</span>
+                        <span className="text-xs font-semibold text-slate-600 mt-1.5">Uang Tunai Kasir Reparasi</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Keterangan Kasir */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Keterangan Kasir (Opsional)
                     </label>
                     <input
@@ -332,7 +332,7 @@ export default function TransactionModal({
                       placeholder="Contoh: Kas masuk shift pagi"
                       value={reference}
                       onChange={(e) => setReference(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     />
                   </div>
                 </>
@@ -340,47 +340,47 @@ export default function TransactionModal({
                 <>
                   {/* Rekening Penerimaan (Pemilik) */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Rekening Penerimaan (Uang yang Menerima)
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setBankAccount('rekening_laundry')}
-                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                           bankAccount === 'rekening_laundry'
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex items-center space-x-1.5 font-bold text-xs">
-                          <Building2 className="w-4 h-4 text-emerald-600" />
+                        <div className="flex items-center space-x-2 font-black text-sm">
+                          <Building2 className="w-5 h-5 text-emerald-600" />
                           <span>Rekening Laundry</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 mt-1">Unit Usaha: Laundry</span>
+                        <span className="text-xs font-semibold text-slate-600 mt-1.5">Unit Usaha: Laundry</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setBankAccount('rekening_reparasi')}
-                        className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                           bankAccount === 'rekening_reparasi'
-                            ? 'border-indigo-500 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-950 ring-2 ring-indigo-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex items-center space-x-1.5 font-bold text-xs">
-                          <Wrench className="w-4 h-4 text-indigo-600" />
+                        <div className="flex items-center space-x-2 font-black text-sm">
+                          <Wrench className="w-5 h-5 text-indigo-600" />
                           <span>Rekening Reparasi</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 mt-1">Unit Usaha: Reparasi</span>
+                        <span className="text-xs font-semibold text-slate-600 mt-1.5">Unit Usaha: Reparasi</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Referensi / Bukti Transfer */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Referensi / Bukti Pembayaran Transfer
                     </label>
                     <input
@@ -389,7 +389,7 @@ export default function TransactionModal({
                       value={reference}
                       onChange={(e) => setReference(e.target.value)}
                       required
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     />
                   </div>
                 </>
@@ -402,24 +402,24 @@ export default function TransactionModal({
             <>
               {/* Pilihan: Biaya Operasional vs Setoran Target ke Investor */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">
                   Tujuan Pengeluaran
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setIsSetoranInvestor(false)}
-                    className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                    className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                       !isSetoranInvestor
-                        ? 'border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-500'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'border-rose-600 bg-rose-50 text-rose-950 ring-2 ring-rose-500'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-1.5 font-bold text-xs">
-                      <ShoppingBag className="w-3.5 h-3.5 text-rose-600" />
+                    <div className="flex items-center space-x-2 font-black text-sm">
+                      <ShoppingBag className="w-4 h-4 text-rose-600" />
                       <span>Biaya Operasional</span>
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1">
+                    <span className="text-xs font-semibold text-slate-600 mt-1.5">
                       Listrik, gas, sabun, sewa, sparepart
                     </span>
                   </button>
@@ -427,17 +427,17 @@ export default function TransactionModal({
                   <button
                     type="button"
                     onClick={() => setIsSetoranInvestor(true)}
-                    className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                    className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                       isSetoranInvestor
-                        ? 'border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-500'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'border-amber-500 bg-amber-50 text-amber-950 ring-2 ring-amber-500'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-1.5 font-bold text-xs">
-                      <Target className="w-3.5 h-3.5 text-amber-600" />
+                    <div className="flex items-center space-x-2 font-black text-sm">
+                      <Target className="w-4 h-4 text-amber-600" />
                       <span>Setoran ke Investor</span>
                     </div>
-                    <span className="text-[10px] text-amber-700 font-medium mt-1">
+                    <span className="text-xs text-amber-800 font-bold mt-1.5">
                       Target Tetap Rp 10 Juta / Bln
                     </span>
                   </button>
@@ -445,12 +445,12 @@ export default function TransactionModal({
               </div>
 
               {isSetoranInvestor ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-1">
-                  <div className="font-bold flex items-center space-x-1 text-amber-800">
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 text-xs sm:text-sm space-y-1">
+                  <div className="font-extrabold flex items-center space-x-1.5 text-amber-900">
                     <Target className="w-4 h-4 text-amber-600" />
                     <span>Setoran Realisasi Target Investor</span>
                   </div>
-                  <p className="text-[11px] text-amber-700 leading-relaxed">
+                  <p className="text-xs text-amber-800 leading-relaxed font-semibold">
                     Pencatatan ini akan langsung dihitung sebagai realisasi <strong>Target Setoran Investor (Rp 10.000.000 / Bulan)</strong> dan otomatis mengurangi sisa target yang harus dipenuhi.
                   </p>
                 </div>
@@ -458,15 +458,15 @@ export default function TransactionModal({
                 <>
                   {/* Business Unit */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Business Unit</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Business Unit</label>
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setBusinessUnit('laundry')}
-                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                        className={`py-3 px-3.5 rounded-xl border-2 text-sm font-black transition flex items-center justify-center space-x-2 ${
                           businessUnit === 'laundry'
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
                         <Building2 className="w-4 h-4 text-emerald-600" />
@@ -476,10 +476,10 @@ export default function TransactionModal({
                       <button
                         type="button"
                         onClick={() => setBusinessUnit('reparasi')}
-                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                        className={`py-3 px-3.5 rounded-xl border-2 text-sm font-black transition flex items-center justify-center space-x-2 ${
                           businessUnit === 'reparasi'
-                            ? 'border-indigo-500 bg-indigo-50 text-indigo-800 ring-2 ring-indigo-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-950 ring-2 ring-indigo-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
                         <Wrench className="w-4 h-4 text-indigo-600" />
@@ -490,32 +490,32 @@ export default function TransactionModal({
 
                   {/* Cost Type */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Jenis Biaya (Cost Type)</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Jenis Biaya (Cost Type)</label>
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setCostType('fixed_cost')}
-                        className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                           costType === 'fixed_cost'
-                            ? 'border-sky-500 bg-sky-50 text-sky-900 ring-2 ring-sky-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-sky-600 bg-sky-50 text-sky-950 ring-2 ring-sky-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <span className="font-bold text-xs">Fixed Cost</span>
-                        <span className="text-[10px] text-slate-500">Biaya Tetap (Sewa, Gaji Pokok)</span>
+                        <span className="font-black text-sm">Fixed Cost</span>
+                        <span className="text-xs text-slate-600 font-semibold mt-1">Biaya Tetap (Sewa, Gaji Pokok)</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setCostType('variable_cost')}
-                        className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
                           costType === 'variable_cost'
-                            ? 'border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-500'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <span className="font-bold text-xs">Variable Cost</span>
-                        <span className="text-[10px] text-slate-500">Biaya Variabel (Gas, Detergen, Part)</span>
+                        <span className="font-black text-sm">Variable Cost</span>
+                        <span className="text-xs text-slate-600 font-semibold mt-1">Biaya Variabel (Gas, Detergen, Part)</span>
                       </button>
                     </div>
                   </div>
@@ -526,28 +526,28 @@ export default function TransactionModal({
 
           {/* Nominal Transaksi (Live Rupiah Preview) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nominal Transaksi (Rp)</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Nominal Transaksi (Rp)</label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+              <span className="absolute left-4 top-3 text-sm font-bold text-slate-400">Rp</span>
               <input
                 type="text"
                 placeholder="Contoh: 1.000.000"
                 value={rawAmount}
                 onChange={(e) => setRawAmount(formatInputRupiah(e.target.value))}
                 required
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
             {rawAmount && (
-              <p className="text-[11px] text-emerald-600 font-medium mt-1">
-                {formatRupiah(parseInputToNumber(rawAmount))}
+              <p className="text-xs sm:text-sm text-emerald-700 font-bold mt-1.5">
+                Terbaca: {formatRupiah(parseInputToNumber(rawAmount))}
               </p>
             )}
           </div>
 
           {/* Catatan / Keterangan */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
               {type === 'pengeluaran'
                 ? isSetoranInvestor
                   ? 'Catatan Setoran (Opsional)'
@@ -566,14 +566,14 @@ export default function TransactionModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               required={type === 'pengeluaran' && !isSetoranInvestor}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
           </div>
 
           {/* Security & Audit Badge */}
-          <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-start space-x-2 text-[11px] text-slate-500">
-            <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isPengelola ? 'text-emerald-600' : 'text-amber-600'}`} />
-            <span>
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-start space-x-2.5 text-xs text-slate-600">
+            <ShieldCheck className={`w-5 h-5 shrink-0 mt-0.5 ${isPengelola ? 'text-emerald-600' : 'text-amber-600'}`} />
+            <span className="font-medium">
               {isPengelola ? (
                 <>
                   Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pengelola</strong> (
@@ -602,15 +602,15 @@ export default function TransactionModal({
           <button
             type="submit"
             disabled={submitting}
-            className={`w-full flex items-center justify-center space-x-2 py-3 text-white font-semibold text-xs rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50 ${
+            className={`w-full flex items-center justify-center space-x-2 py-3.5 text-white font-bold text-sm sm:text-base rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50 ${
               type === 'penerimaan'
                 ? 'bg-emerald-600 hover:bg-emerald-700'
                 : isSetoranInvestor
-                ? 'bg-amber-600 hover:bg-amber-700'
+                ? 'bg-amber-600 hover:bg-amber-700 text-slate-950 font-black'
                 : 'bg-rose-600 hover:bg-rose-700'
             }`}
           >
-            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
             <span>
               {submitting
                 ? 'Menyimpan Transaksi...'
