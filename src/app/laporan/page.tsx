@@ -143,12 +143,26 @@ export default function RingkasanPencatatanPage() {
   // =========================================================================
   // 3. KALKULASI TOTAL KELOMPOK 2: CATATAN PENERIMAAN PEMBAYARAN
   // =========================================================================
+  const isRekeningLaundry = (tx: Transaction) => {
+    if (tx.bank_account === 'rekening_laundry') return true;
+    if (tx.bank_account === 'rekening_reparasi') return false;
+    // Fallback: transaksi transfer tanpa bank_account diarahkan ke laundry jika bukan unit reparasi
+    return tx.payment_method === 'transfer' && tx.business_unit !== 'reparasi';
+  };
+
+  const isRekeningReparasi = (tx: Transaction) => {
+    if (tx.bank_account === 'rekening_reparasi') return true;
+    if (tx.bank_account === 'rekening_laundry') return false;
+    // Fallback: transaksi transfer tanpa bank_account diarahkan ke reparasi jika unit reparasi
+    return tx.payment_method === 'transfer' && tx.business_unit === 'reparasi';
+  };
+
   const penerimaanRekeningLaundry = filteredPenerimaan
-    .filter((tx) => tx.bank_account === 'rekening_laundry')
+    .filter(isRekeningLaundry)
     .reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
 
   const penerimaanRekeningReparasi = filteredPenerimaan
-    .filter((tx) => tx.bank_account === 'rekening_reparasi')
+    .filter(isRekeningReparasi)
     .reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
 
   const penerimaanCash = filteredPenerimaan
@@ -441,18 +455,22 @@ export default function RingkasanPencatatanPage() {
                             {formatDateIndo(tx.transaction_date)}
                           </td>
                           <td className="py-4 px-4 whitespace-nowrap">
-                            {tx.bank_account ? (
+                            {tx.payment_method === 'transfer' ? (
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
-                                  tx.bank_account === 'rekening_laundry'
-                                    ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
-                                    : 'bg-purple-50 text-purple-900 border-purple-300'
+                                  tx.bank_account === 'rekening_reparasi' || (!tx.bank_account && tx.business_unit === 'reparasi')
+                                    ? 'bg-purple-50 text-purple-900 border-purple-300'
+                                    : 'bg-emerald-50 text-emerald-900 border-emerald-300'
                                 }`}
                               >
-                                {tx.bank_account === 'rekening_laundry' ? 'Rekening Laundry' : 'Rekening Reparasi'}
+                                {tx.bank_account === 'rekening_reparasi' || (!tx.bank_account && tx.business_unit === 'reparasi')
+                                  ? 'Rekening Reparasi'
+                                  : 'Rekening Laundry'}
                               </span>
                             ) : (
-                              <span className="text-slate-500 italic font-semibold">Kas Tunai Outlet</span>
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-700 border-slate-300">
+                                Kas Tunai Kasir
+                              </span>
                             )}
                           </td>
                           <td className="py-4 px-4 whitespace-nowrap">
