@@ -177,6 +177,14 @@ export default function RingkasanPencatatanPage() {
   // =========================================================================
   // 4. KALKULASI TOTAL KELOMPOK 3: CATATAN PENGELUARAN BIAYA
   // =========================================================================
+  const pengeluaranBank = filteredPengeluaran
+    .filter((tx) => tx.payment_method === 'transfer')
+    .reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
+
+  const pengeluaranCash = filteredPengeluaran
+    .filter((tx) => tx.payment_method === 'cash')
+    .reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
+
   const pengeluaranLaundry = filteredPengeluaran
     .filter((tx) => tx.business_unit === 'laundry' || (!tx.business_unit && tx.sub_category?.includes('laundry')))
     .reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
@@ -526,28 +534,28 @@ export default function RingkasanPencatatanPage() {
 
             {/* Summary Cards Kelompok 3 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Unit Laundry</span>
-                <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(pengeluaranLaundry)}</div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Operasional Laundry</div>
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-sky-200 shadow-sm bg-sky-50/30">
+                <span className="text-xs sm:text-sm font-bold text-sky-800 uppercase block mb-1">Via Rekening Bank</span>
+                <div className="text-xl sm:text-2xl font-black text-sky-700">{formatRupiah(pengeluaranBank)}</div>
+                <div className="text-xs sm:text-sm text-sky-800 mt-1 font-semibold">Sewa, Listrik, PAM (Pemilik)</div>
               </div>
 
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Unit Reparasi</span>
-                <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(pengeluaranReparasi)}</div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Operasional Reparasi</div>
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200 shadow-sm bg-emerald-50/30">
+                <span className="text-xs sm:text-sm font-bold text-emerald-800 uppercase block mb-1">Via Kasir Tunai</span>
+                <div className="text-xl sm:text-2xl font-black text-emerald-700">{formatRupiah(pengeluaranCash)}</div>
+                <div className="text-xs sm:text-sm text-emerald-800 mt-1 font-semibold">Operasional Toko (Cash)</div>
               </div>
 
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Fixed Cost</span>
                 <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(pengeluaranFixedCost)}</div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Sewa, Gaji Tetap, dll</div>
+                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Sewa Toko, Gaji Tetap</div>
               </div>
 
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Variable Cost</span>
                 <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(pengeluaranVariableCost)}</div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Detergen, Plastik, Gas</div>
+                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Detergen, Plastik, Gas, Bensin</div>
               </div>
 
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-rose-200 shadow-sm bg-rose-50/40">
@@ -564,6 +572,7 @@ export default function RingkasanPencatatanPage() {
                   <thead className="bg-slate-100/90 uppercase text-xs font-black text-slate-800 border-b border-slate-200 tracking-wider">
                     <tr>
                       <th className="py-3.5 px-4">Tanggal</th>
+                      <th className="py-3.5 px-4">Sumber Dana</th>
                       <th className="py-3.5 px-4">Business Unit</th>
                       <th className="py-3.5 px-4">Cost Type</th>
                       <th className="py-3.5 px-4">Keterangan</th>
@@ -573,7 +582,7 @@ export default function RingkasanPencatatanPage() {
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {filteredPengeluaran.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-8 text-slate-500 font-semibold">
+                        <td colSpan={6} className="text-center py-8 text-slate-500 font-semibold">
                           Belum ada catatan pengeluaran pada periode tanggal yang dipilih.
                         </td>
                       </tr>
@@ -582,6 +591,19 @@ export default function RingkasanPencatatanPage() {
                         <tr key={tx.id} className="hover:bg-slate-50 transition">
                           <td className="py-4 px-4 font-bold text-slate-900 whitespace-nowrap">
                             {formatDateIndo(tx.transaction_date)}
+                          </td>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            {tx.payment_method === 'transfer' ? (
+                              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-sky-50 text-sky-900 border-sky-300">
+                                <CreditCard className="w-3.5 h-3.5 text-sky-600" />
+                                <span>Rekening Bank</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-emerald-50 text-emerald-900 border-emerald-300">
+                                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Kasir Tunai</span>
+                              </span>
+                            )}
                           </td>
                           <td className="py-4 px-4 whitespace-nowrap">
                             <span

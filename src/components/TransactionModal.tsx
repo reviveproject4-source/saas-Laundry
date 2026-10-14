@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType, BankAccount, BusinessUnit, CostType, SubCategory, UserProfile } from '@/lib/types';
 import { createTransactionInSupabase } from '@/lib/transactions';
-import { X, CreditCard, ShoppingBag, ShieldAlert, Loader2, AlertCircle, Building2, Wrench, ShieldCheck, Target } from 'lucide-react';
+import { X, CreditCard, ShoppingBag, ShieldAlert, Loader2, AlertCircle, Building2, Wrench, ShieldCheck, Target, Banknote } from 'lucide-react';
 import { formatRupiah } from '@/lib/formatters';
 
 interface TransactionModalProps {
@@ -44,6 +44,9 @@ export default function TransactionModal({
   const [isSetoranInvestor, setIsSetoranInvestor] = useState<boolean>(defaultSubCategory === 'disetor_investor');
   const [businessUnit, setBusinessUnit] = useState<BusinessUnit>('laundry');
   const [costType, setCostType] = useState<CostType>('variable_cost');
+  const [expensePaymentMethod, setExpensePaymentMethod] = useState<'cash' | 'transfer'>(
+    userProfile?.role === 'investor' ? 'transfer' : 'cash'
+  );
 
   // Field umum
   const [rawAmount, setRawAmount] = useState<string>('');
@@ -55,13 +58,14 @@ export default function TransactionModal({
     if (isOpen) {
       setType(defaultType);
       setIsSetoranInvestor(defaultSubCategory === 'disetor_investor');
+      setExpensePaymentMethod(userProfile?.role === 'investor' ? 'transfer' : 'cash');
       setRawAmount('');
       setNotes('');
       setReference('');
       setErrorMessage(null);
       setDate(todayStr);
     }
-  }, [isOpen, defaultType, defaultSubCategory, todayStr]);
+  }, [isOpen, defaultType, defaultSubCategory, todayStr, userProfile?.role]);
 
   if (!isOpen) return null;
 
@@ -158,9 +162,9 @@ export default function TransactionModal({
         sub_category: computedSubCategory as any,
         amount: parsedAmount,
         notes: (type === 'penerimaan' ? combinedNotes : notes.trim()) || defaultSetoranNote,
-        // Kolom spesifik Penerimaan
-        payment_method: (type === 'penerimaan' ? (isPengelola ? 'cash' : 'transfer') : 'cash') as 'transfer' | 'cash',
-        bank_account: type === 'penerimaan' ? (isPengelola ? null : bankAccount) : null,
+        // Kolom spesifik Metode Pembayaran & Rekening
+        payment_method: (type === 'penerimaan' ? (isPengelola ? 'cash' : 'transfer') : expensePaymentMethod) as 'transfer' | 'cash',
+        bank_account: type === 'penerimaan' ? (isPengelola ? null : bankAccount) : (expensePaymentMethod === 'transfer' ? bankAccount : null),
         // Kolom spesifik Pengeluaran & Unit
         business_unit: type === 'penerimaan' ? (isPengelola ? businessUnit : (bankAccount === 'rekening_reparasi' ? 'reparasi' : 'laundry')) : (isSetoran ? 'laundry' : businessUnit),
         cost_type: type === 'pengeluaran' ? (isSetoran ? null : costType) : null,
@@ -456,6 +460,84 @@ export default function TransactionModal({
                 </div>
               ) : (
                 <>
+                  {/* Sumber Dana Pengeluaran (Cash Toko vs Rekening Bank Pemilik) */}
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                      Sumber Dana Pengeluaran (Dibayar Dari)
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setExpensePaymentMethod('cash')}
+                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                          expensePaymentMethod === 'cash'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 font-black text-sm">
+                          <Banknote className="w-4 h-4 text-emerald-600" />
+                          <span>Kasir Tunai (Cash Toko)</span>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 mt-1.5">
+                          Beli gas, bensin, gaji harian, operasional toko
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setExpensePaymentMethod('transfer')}
+                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                          expensePaymentMethod === 'transfer'
+                            ? 'border-sky-600 bg-sky-50 text-sky-950 ring-2 ring-sky-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 font-black text-sm">
+                          <CreditCard className="w-4 h-4 text-sky-600" />
+                          <span>Rekening Bank (Pemilik)</span>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 mt-1.5">
+                          Bayar sewa toko, listrik, PAM, transfer bank
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {expensePaymentMethod === 'transfer' && (
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                        Rekening Bank yang Membayar
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setBankAccount('rekening_laundry')}
+                          className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold transition flex items-center justify-center space-x-2 ${
+                            bankAccount === 'rekening_laundry'
+                              ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500'
+                              : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Building2 className="w-4 h-4 text-emerald-600" />
+                          <span>Rekening Laundry</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBankAccount('rekening_reparasi')}
+                          className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold transition flex items-center justify-center space-x-2 ${
+                            bankAccount === 'rekening_reparasi'
+                              ? 'border-indigo-600 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-500'
+                              : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Wrench className="w-4 h-4 text-indigo-600" />
+                          <span>Rekening Reparasi</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Business Unit */}
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Business Unit</label>

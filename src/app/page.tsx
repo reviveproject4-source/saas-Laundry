@@ -29,6 +29,7 @@ import {
   Target,
   ShieldCheck,
   TrendingUp,
+  Wallet,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -155,6 +156,27 @@ export default function DashboardPage() {
   const totalIncome = allIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const totalExpense = allExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const netBalance = totalIncome - totalExpense;
+
+  // Pemisahan Dua Dompet: Rekening Bank (Pemilik) vs Kasir Tunai (Toko) ala Excel
+  const bankIncome = allIncomeTxs
+    .filter((t) => t.payment_method === 'transfer')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const bankExpense = allExpenseTxs
+    .filter((t) => t.payment_method === 'transfer')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const bankBalance = bankIncome - bankExpense;
+
+  const cashIncome = allIncomeTxs
+    .filter((t) => t.payment_method === 'cash')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const cashExpense = allExpenseTxs
+    .filter((t) => t.payment_method === 'cash')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const cashBalance = cashIncome - cashExpense;
 
   // 2. Calculations: Hari Ini (Berdasarkan tanggal lokal outlet)
   // A. Omzet Harian (Murni dari public.daily_omzet, BUKAN dari transactions)
@@ -487,47 +509,136 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Akumulasi Keseluruhan */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              
-              {/* Total Penerimaan Akumulasi */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Total Penerimaan (Akumulasi)</span>
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                    <ArrowDownLeft className="w-5 h-5" />
-                  </div>
+            {/* Pemisahan Dua Dompet: Rekening Bank (Pemilik) vs Kasir Tunai Toko (Pengelola) */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                  <h4 className="font-black text-slate-900 text-base sm:text-lg">
+                    Pemisahan Saldo Mandiri: Rekening Bank vs Kasir Tunai
+                  </h4>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-600">
+                    Posisi uang fisik riil dipisah transparan antara uang di Rekening Bank (Pemilik) dan uang di Kasir Toko (Pengelola).
+                  </p>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-600">{formatRupiah(totalIncome)}</div>
-                <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Akumulasi Seluruh Arus Uang Masuk</div>
               </div>
 
-              {/* Total Pengeluaran Akumulasi */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Total Pengeluaran (Akumulasi)</span>
-                  <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
-                    <ArrowUpRight className="w-5 h-5" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* DOMPET 1: REKENING BANK (PEMILIK / MAMI LINA) */}
+                <div className="bg-gradient-to-br from-sky-50 via-white to-sky-50/40 p-5 sm:p-6 rounded-2xl border-2 border-sky-300 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-sky-100">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="p-2.5 bg-sky-600 text-white rounded-xl">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-black uppercase tracking-wider text-sky-800 block">
+                          Dompet Rekening Bank
+                        </span>
+                        <span className="text-sm font-bold text-slate-700">Dipegang Pemilik (Mami Lina)</span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+                      Transfer & QRIS
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="bg-white/80 p-3 rounded-xl border border-sky-100">
+                      <span className="text-xs font-bold text-slate-600 block">Transfer Masuk</span>
+                      <span className="text-base sm:text-lg font-black text-emerald-700">{formatRupiah(bankIncome)}</span>
+                    </div>
+                    <div className="bg-white/80 p-3 rounded-xl border border-sky-100">
+                      <span className="text-xs font-bold text-slate-600 block">Bayar via Bank</span>
+                      <span className="text-base sm:text-lg font-black text-rose-700">{formatRupiah(bankExpense)}</span>
+                      <span className="text-[11px] text-slate-600 block font-semibold mt-0.5">Sewa, Listrik, PAM</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-white rounded-xl border border-sky-200 shadow-xs flex justify-between items-center">
+                    <div>
+                      <span className="text-xs font-bold text-sky-800 uppercase block">Sisa Saldo Rekening Bank</span>
+                      <div className="text-2xl sm:text-3xl font-black text-sky-700 mt-0.5">
+                        {formatRupiah(bankBalance)}
+                      </div>
+                      <span className="text-xs font-semibold text-slate-600">Sesuai mutasi fisik rekening bank</span>
+                    </div>
+                    <div className="p-3 bg-sky-100/70 text-sky-800 rounded-2xl">
+                      <Wallet className="w-7 h-7" />
+                    </div>
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-rose-600">{formatRupiah(totalExpense)}</div>
-                <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Biaya Operasional Toko & Setoran</div>
-              </div>
 
-              {/* Saldo Kas Bersih */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Saldo Kas Bersih</span>
-                  <div className="p-2 bg-sky-50 text-sky-600 rounded-xl">
-                    <Banknote className="w-5 h-5" />
+                {/* DOMPET 2: KASIR TUNAI TOKO (PENGELOLA) */}
+                <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-5 sm:p-6 rounded-2xl border-2 border-emerald-300 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-emerald-100">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="p-2.5 bg-emerald-600 text-white rounded-xl">
+                        <Banknote className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-black uppercase tracking-wider text-emerald-800 block">
+                          Dompet Kasir Tunai Toko
+                        </span>
+                        <span className="text-sm font-bold text-slate-700">Dipegang Pengelola (Kasir Fisik)</span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      Uang Tunai (Cash)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="bg-white/80 p-3 rounded-xl border border-emerald-100">
+                      <span className="text-xs font-bold text-slate-600 block">Cash Masuk Tercatat</span>
+                      <span className="text-base sm:text-lg font-black text-emerald-700">{formatRupiah(cashIncome)}</span>
+                    </div>
+                    <div className="bg-white/80 p-3 rounded-xl border border-emerald-100">
+                      <span className="text-xs font-bold text-slate-600 block">Belanja Toko (Cash)</span>
+                      <span className="text-base sm:text-lg font-black text-rose-700">{formatRupiah(cashExpense)}</span>
+                      <span className="text-[11px] text-slate-600 block font-semibold mt-0.5">Bensin, gas, gaji harian</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-white rounded-xl border border-emerald-200 shadow-xs flex justify-between items-center">
+                    <div>
+                      <span className="text-xs font-bold text-emerald-800 uppercase block">Posisi Kasir Toko Tercatat</span>
+                      <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">
+                        {formatRupiah(cashBalance)}
+                      </div>
+                      <span className="text-xs font-bold text-amber-900">
+                        *Belum termasuk fisik cash Rp 1,2 Juta yang belum dicatat pengelola
+                      </span>
+                    </div>
+                    <div className="p-3 bg-emerald-100/70 text-emerald-800 rounded-2xl">
+                      <Coins className="w-7 h-7" />
+                    </div>
                   </div>
                 </div>
-                <div className={`text-2xl sm:text-3xl font-black ${netBalance >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
-                  {formatRupiah(netBalance)}
-                </div>
-                <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Penerimaan - Pengeluaran</div>
+
               </div>
 
+              {/* Baris Akumulasi Global Ringkas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                  <div>
+                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Seluruh Penerimaan (Semua)</span>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-700">{formatRupiah(totalIncome)}</span>
+                  </div>
+                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
+                    Bank + Cash
+                  </span>
+                </div>
+                <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                  <div>
+                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Seluruh Pengeluaran (Semua)</span>
+                    <span className="text-xl sm:text-2xl font-black text-rose-700">{formatRupiah(totalExpense)}</span>
+                  </div>
+                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
+                    Bank + Toko
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

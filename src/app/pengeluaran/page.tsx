@@ -9,7 +9,7 @@ import { Transaction, UserProfile, TenantProfile } from '@/lib/types';
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions, deleteTransactionFromSupabase } from '@/lib/transactions';
 import { formatRupiah } from '@/lib/formatters';
-import { PlusCircle, ArrowUpRight, ShoppingCart, Send, UserX, Loader2, AlertTriangle } from 'lucide-react';
+import { PlusCircle, ArrowUpRight, ShoppingCart, Send, UserX, Loader2, AlertTriangle, CreditCard, Banknote } from 'lucide-react';
 
 export default function PengeluaranPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -84,16 +84,18 @@ export default function PengeluaranPage() {
 
   const totalExpense = expenseTxs.reduce((acc, t) => acc + Number(t.amount), 0);
   
-  const totalOperasional = expenseTxs
-    .filter((t) => t.sub_category !== 'disetor_investor' && t.sub_category !== 'penarikan_investor')
+  // Pengeluaran dari Rekening Bank (Pemilik)
+  const totalExpenseBank = expenseTxs
+    .filter((t) => t.payment_method === 'transfer')
+    .reduce((acc, t) => acc + Number(t.amount), 0);
+
+  // Pengeluaran dari Kasir Tunai (Toko)
+  const totalExpenseCash = expenseTxs
+    .filter((t) => t.payment_method === 'cash')
     .reduce((acc, t) => acc + Number(t.amount), 0);
 
   const totalDisetor = expenseTxs
     .filter((t) => t.sub_category === 'disetor_investor')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
-
-  const totalPenarikan = expenseTxs
-    .filter((t) => t.sub_category === 'penarikan_investor')
     .reduce((acc, t) => acc + Number(t.amount), 0);
 
   return (
@@ -135,9 +137,10 @@ export default function PengeluaranPage() {
             </button>
           </div>
 
-          {/* Widgets */}
+          {/* Widgets Pengeluaran Berdasarkan Sumber Dana */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             
+            {/* Total Pengeluaran */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Total Pengeluaran</span>
@@ -146,40 +149,43 @@ export default function PengeluaranPage() {
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-rose-600">{formatRupiah(totalExpense)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Semua Jenis Pengeluaran</div>
+              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Bank + Kasir Toko</div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            {/* Pengeluaran via Rekening Bank (Pemilik) */}
+            <div className="bg-sky-50/60 p-5 rounded-2xl border border-sky-200 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Operasional & Gas</span>
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-                  <ShoppingCart className="w-5 h-5" />
+                <span className="text-xs sm:text-sm font-bold text-sky-900 uppercase">Via Rekening Bank</span>
+                <div className="p-2 bg-sky-100 text-sky-700 rounded-xl">
+                  <CreditCard className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(totalOperasional)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Gas, Detergen, Belanja</div>
+              <div className="text-2xl sm:text-3xl font-black text-sky-800">{formatRupiah(totalExpenseBank)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-sky-900 mt-1">Sewa, Listrik, PAM</div>
             </div>
 
+            {/* Pengeluaran via Kasir Tunai (Toko) */}
+            <div className="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-200 shadow-sm">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-xs sm:text-sm font-bold text-emerald-900 uppercase">Via Kasir Tunai Toko</span>
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <Banknote className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(totalExpenseCash)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-emerald-900 mt-1">Gas, Detergen, Belanja Toko</div>
+            </div>
+
+            {/* Disetor ke Investor */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Disetor ke Investor</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
                   <Send className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-600">{formatRupiah(totalDisetor)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-emerald-700 mt-1">Dari Pengelola</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Penarikan Investor</span>
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                  <UserX className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-black text-indigo-600">{formatRupiah(totalPenarikan)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-indigo-700 mt-1">Penarikan Uang (Prive)</div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-700">{formatRupiah(totalDisetor)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-amber-800 mt-1">Realisasi Target Bulanan</div>
             </div>
 
           </div>
