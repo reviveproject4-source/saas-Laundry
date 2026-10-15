@@ -575,12 +575,14 @@ export default function DashboardPage() {
 
                   <div className="p-3.5 bg-white rounded-xl border border-sky-200 shadow-xs flex justify-between items-center">
                     <div>
-                      <span className="text-xs font-bold text-sky-800 uppercase block">Surplus Operasional Bank</span>
-                      <div className="text-xl sm:text-2xl font-black text-sky-700 mt-0.5">
-                        +{formatRupiah(bankLaundryOpsSurplus)}
+                      <span className="text-xs font-bold text-slate-700 uppercase block">
+                        {bankLaundryBalance >= 0 ? 'Surplus Mutasi Rekening' : 'Saldo Mutasi Buku Rekening'}
+                      </span>
+                      <div className={`text-xl sm:text-2xl font-black mt-0.5 ${bankLaundryBalance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {formatRupiah(bankLaundryBalance)}
                       </div>
                       <span className="text-xs font-bold text-slate-600 flex items-center mt-1">
-                        Lunas sewa & biaya pokok (Setoran: {formatRupiah(bankLaundrySetoran)})
+                        Sewa 3jt + Setoran 1jt (Fisik m-Banking ~Rp 400.000)
                       </span>
                     </div>
                     <div className="p-2.5 bg-sky-100/70 text-sky-800 rounded-2xl shrink-0">
@@ -673,8 +675,8 @@ export default function DashboardPage() {
                       <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5">
                         {formatRupiah(cashBalance)}
                       </div>
-                      <span className="text-xs font-bold text-emerald-700 flex items-center mt-1">
-                        ✓ Termasuk uang fisik diinput Rp 852.500
+                      <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
+                        Sisa nota buku (Fisik laci kasir saat ini: Rp 752.000)
                       </span>
                     </div>
                     <div className="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-2xl shrink-0">
