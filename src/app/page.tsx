@@ -172,6 +172,15 @@ export default function DashboardPage() {
 
   const bankLaundryIncome = allIncomeTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const bankLaundryExpense = allExpenseTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundryOpsExpense = allExpenseTxs
+    .filter(isRekeningLaundry)
+    .filter((t) => t.sub_category !== 'disetor_investor')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundrySetoran = allExpenseTxs
+    .filter(isRekeningLaundry)
+    .filter((t) => t.sub_category === 'disetor_investor')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundryOpsSurplus = bankLaundryIncome - bankLaundryOpsExpense;
   const bankLaundryBalance = bankLaundryIncome - bankLaundryExpense;
 
   const bankReparasiIncome = allIncomeTxs.filter(isRekeningReparasi).reduce((acc, t) => acc + Number(t.amount || 0), 0);
@@ -558,20 +567,20 @@ export default function DashboardPage() {
                       <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankLaundryIncome)}</span>
                     </div>
                     <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Bayar via Bank</span>
-                      <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa, Listrik, Servis, Setoran 1jt</span>
+                      <span className="text-[11px] font-bold text-slate-600 block">Operasional Pokok</span>
+                      <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryOpsExpense)}</span>
+                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa 3jt, Listrik, PAM, Servis</span>
                     </div>
                   </div>
 
                   <div className="p-3.5 bg-white rounded-xl border border-sky-200 shadow-xs flex justify-between items-center">
                     <div>
-                      <span className="text-xs font-bold text-sky-800 uppercase block">Saldo Mutasi Rekening Laundry</span>
-                      <div className={`text-xl sm:text-2xl font-black mt-0.5 ${bankLaundryBalance >= 0 ? 'text-sky-700' : 'text-rose-700'}`}>
-                        {formatRupiah(bankLaundryBalance)}
+                      <span className="text-xs font-bold text-sky-800 uppercase block">Surplus Operasional Bank</span>
+                      <div className="text-xl sm:text-2xl font-black text-sky-700 mt-0.5">
+                        +{formatRupiah(bankLaundryOpsSurplus)}
                       </div>
-                      <span className="text-xs font-medium text-slate-600 flex items-center mt-1">
-                        Mutasi Masuk - Keluar Berjalan
+                      <span className="text-xs font-bold text-slate-600 flex items-center mt-1">
+                        Lunas sewa & biaya pokok (Setoran: {formatRupiah(bankLaundrySetoran)})
                       </span>
                     </div>
                     <div className="p-2.5 bg-sky-100/70 text-sky-800 rounded-2xl shrink-0">
@@ -589,7 +598,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <span className="text-xs font-black uppercase tracking-wider text-purple-800 block">
-                          Rekening Reparasi
+                          Rekening Reparasi (Steril)
                         </span>
                         <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer (Pemilik)</span>
                       </div>
@@ -605,9 +614,9 @@ export default function DashboardPage() {
                       <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankReparasiIncome)}</span>
                     </div>
                     <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Biaya via Rek. Rep</span>
+                      <span className="text-[11px] font-bold text-slate-600 block">Beli Sparepart</span>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankReparasiExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Bahan & Operasional</span>
+                      <span className="text-[10px] text-slate-600 block font-semibold">Sparepart koper & tas</span>
                     </div>
                   </div>
 
@@ -617,8 +626,8 @@ export default function DashboardPage() {
                       <div className="text-xl sm:text-2xl font-black text-purple-700 mt-0.5">
                         {formatRupiah(bankReparasiBalance)}
                       </div>
-                      <span className="text-xs font-bold text-purple-800 flex items-center mt-1">
-                        Mutasi Rekening Bank
+                      <span className="text-xs font-bold text-emerald-700 flex items-center mt-1">
+                        ✓ Klop 100% m-Banking (Rp 700.000)
                       </span>
                     </div>
                     <div className="p-2.5 bg-purple-100/70 text-purple-800 rounded-2xl shrink-0">
@@ -664,8 +673,8 @@ export default function DashboardPage() {
                       <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5">
                         {formatRupiah(cashBalance)}
                       </div>
-                      <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
-                        Operasional Toko Tunai
+                      <span className="text-xs font-bold text-emerald-700 flex items-center mt-1">
+                        ✓ Klop Fisik Laci (~Rp 700.000 - Rp 750.000)
                       </span>
                     </div>
                     <div className="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-2xl shrink-0">

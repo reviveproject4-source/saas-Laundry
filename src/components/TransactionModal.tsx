@@ -162,11 +162,19 @@ export default function TransactionModal({
         sub_category: computedSubCategory as any,
         amount: parsedAmount,
         notes: (type === 'penerimaan' ? combinedNotes : notes.trim()) || defaultSetoranNote,
-        // Kolom spesifik Metode Pembayaran & Rekening
-        payment_method: (type === 'penerimaan' ? (isPengelola ? 'cash' : 'transfer') : expensePaymentMethod) as 'transfer' | 'cash',
-        bank_account: type === 'penerimaan' ? (isPengelola ? null : bankAccount) : (expensePaymentMethod === 'transfer' ? bankAccount : null),
+        // Kolom spesifik Metode Pembayaran & Rekening (Sesuai Aturan Mutlak Mami Lina):
+        // SEMUA penerimaan & pengeluaran Pengelola = Murni Cash
+        // SEMUA penerimaan & pengeluaran Pemilik = Murni Rekening Bank (Laundry / Reparasi)
+        payment_method: (isPengelola ? 'cash' : 'transfer') as 'transfer' | 'cash',
+        bank_account: isPengelola ? null : bankAccount,
         // Kolom spesifik Pengeluaran & Unit
-        business_unit: type === 'penerimaan' ? (isPengelola ? businessUnit : (bankAccount === 'rekening_reparasi' ? 'reparasi' : 'laundry')) : (isSetoran ? 'laundry' : businessUnit),
+        business_unit: isPengelola
+          ? businessUnit
+          : isSetoran
+          ? 'laundry'
+          : bankAccount === 'rekening_reparasi'
+          ? 'reparasi'
+          : 'laundry',
         cost_type: type === 'pengeluaran' ? (isSetoran ? null : costType) : null,
       };
 
@@ -460,79 +468,52 @@ export default function TransactionModal({
                 </div>
               ) : (
                 <>
-                  {/* Sumber Dana Pengeluaran (Cash Toko vs Rekening Bank Pemilik) */}
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                      Sumber Dana Pengeluaran (Dibayar Dari)
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setExpensePaymentMethod('cash')}
-                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                          expensePaymentMethod === 'cash'
-                            ? 'border-emerald-600 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-2 font-black text-sm">
-                          <Banknote className="w-4 h-4 text-emerald-600" />
-                          <span>Kasir Tunai (Cash Toko)</span>
-                        </div>
-                        <span className="text-xs font-semibold text-slate-600 mt-1.5">
-                          Beli gas, bensin, gaji harian, operasional toko
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setExpensePaymentMethod('transfer')}
-                        className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                          expensePaymentMethod === 'transfer'
-                            ? 'border-sky-600 bg-sky-50 text-sky-950 ring-2 ring-sky-500'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-2 font-black text-sm">
-                          <CreditCard className="w-4 h-4 text-sky-600" />
-                          <span>Rekening Bank (Pemilik)</span>
-                        </div>
-                        <span className="text-xs font-semibold text-slate-600 mt-1.5">
-                          Bayar sewa toko, listrik, PAM, transfer bank
-                        </span>
-                      </button>
+                  {/* Sumber Dana Pengeluaran: Pengelola murni Cash, Pemilik murni Rekening Bank */}
+                  {isPengelola ? (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
+                      <div className="flex items-center space-x-2 font-black text-sm text-emerald-950">
+                        <Banknote className="w-4 h-4 text-emerald-600" />
+                        <span>Sumber Dana: Kasir Tunai (Cash Toko)</span>
+                      </div>
+                      <p className="text-xs font-semibold text-emerald-800">
+                        Otomatis dibayar dari uang kasir fisik toko (Bensin, gas, gaji harian Ujang, dll).
+                      </p>
                     </div>
-                  </div>
-
-                  {expensePaymentMethod === 'transfer' && (
+                  ) : (
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                        Rekening Bank yang Membayar
+                        Rekening Bank yang Membayar (Dana Pemilik)
                       </label>
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
                           onClick={() => setBankAccount('rekening_laundry')}
-                          className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold transition flex items-center justify-center space-x-2 ${
+                          className={`py-3 px-3.5 rounded-xl border-2 text-xs sm:text-sm font-bold transition flex flex-col justify-between ${
                             bankAccount === 'rekening_laundry'
-                              ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500'
+                              ? 'border-emerald-600 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500'
                               : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                           }`}
                         >
-                          <Building2 className="w-4 h-4 text-emerald-600" />
-                          <span>Rekening Laundry</span>
+                          <div className="flex items-center space-x-2 font-black">
+                            <Building2 className="w-4 h-4 text-emerald-600" />
+                            <span>Rekening Laundry</span>
+                          </div>
+                          <span className="text-[11px] font-semibold text-slate-500 mt-1">Sewa toko, listrik, PAM, servis</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setBankAccount('rekening_reparasi')}
-                          className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold transition flex items-center justify-center space-x-2 ${
+                          className={`py-3 px-3.5 rounded-xl border-2 text-xs sm:text-sm font-bold transition flex flex-col justify-between ${
                             bankAccount === 'rekening_reparasi'
-                              ? 'border-indigo-600 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-500'
+                              ? 'border-indigo-600 bg-indigo-50 text-indigo-950 ring-2 ring-indigo-500'
                               : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                           }`}
                         >
-                          <Wrench className="w-4 h-4 text-indigo-600" />
-                          <span>Rekening Reparasi</span>
+                          <div className="flex items-center space-x-2 font-black">
+                            <Wrench className="w-4 h-4 text-indigo-600" />
+                            <span>Rekening Reparasi</span>
+                          </div>
+                          <span className="text-[11px] font-semibold text-slate-500 mt-1">Sparepart steril koper/tas</span>
                         </button>
                       </div>
                     </div>
