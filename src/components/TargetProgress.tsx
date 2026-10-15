@@ -25,12 +25,12 @@ export default function TargetProgress({ totalDisetor, role, onOpenSetoranModal 
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-extrabold text-xl text-white">Target Setoran Investor</h3>
+              <h3 className="font-extrabold text-xl text-white">Target Cicilan Jual Beli Toko</h3>
               <span className="bg-sky-400/20 text-sky-200 text-xs sm:text-sm px-3 py-0.5 rounded-full font-bold border border-sky-400/30">
                 Tetap Rp 10 Juta / Bln
               </span>
             </div>
-            <p className="text-sm text-slate-300 mt-0.5">Setoran dari pengelola kepada investor per bulan</p>
+            <p className="text-sm text-slate-300 mt-0.5">Kewajiban cicilan serah terima usaha dari pengelola kepada pemilik (Mami Lina)</p>
           </div>
         </div>
 

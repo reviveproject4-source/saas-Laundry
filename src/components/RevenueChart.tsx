@@ -30,8 +30,8 @@ export default function RevenueChart({ dailyData, monthlyData }: RevenueChartPro
           </div>
           <p className="text-sm font-semibold text-slate-600 mt-1">
             {viewMode === 'daily'
-              ? 'Menampilkan omset 6 hari sebelumnya'
-              : 'Menampilkan omset 6 bulan sebelumnya'}
+              ? 'Rekap omzet operasional harian (Toko tutup/libur rutin setiap Senin)'
+              : 'Menampilkan omzet akumulasi 6 bulan'}
           </p>
         </div>
 
