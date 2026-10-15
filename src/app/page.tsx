@@ -626,8 +626,8 @@ export default function DashboardPage() {
                       <div className="text-xl sm:text-2xl font-black text-purple-700 mt-0.5">
                         {formatRupiah(bankReparasiBalance)}
                       </div>
-                      <span className="text-xs font-bold text-emerald-700 flex items-center mt-1">
-                        ✓ Klop 100% m-Banking (Rp 700.000)
+                      <span className="text-xs font-bold text-purple-700 flex items-center mt-1">
+                        Mutasi Rekening Bank Reparasi
                       </span>
                     </div>
                     <div className="p-2.5 bg-purple-100/70 text-purple-800 rounded-2xl shrink-0">
