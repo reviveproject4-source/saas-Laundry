@@ -494,7 +494,7 @@ export default function DashboardPage() {
                 <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
                   <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Kasir Tunai (Cash Hari Ini)</span>
                   <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(todayIncomeCash)}</div>
-                  <div className="text-xs font-semibold text-slate-500 mt-1">Uang Fisik Kas Masuk</div>
+                  <div className="text-xs font-semibold text-slate-500 mt-1">Penerimaan Kasir Tunai</div>
                 </div>
 
                 {/* Transfer Hari Ini */}
@@ -525,17 +525,17 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
                   <h4 className="font-black text-slate-900 text-base sm:text-lg">
-                    Pemisahan Saldo Mandiri: Rekening Bank vs Kasir Tunai
+                    Pemisahan Saldo: Rekening Bank vs Kasir Tunai
                   </h4>
                   <p className="text-xs sm:text-sm font-semibold text-slate-600">
-                    Posisi uang fisik riil dipisah transparan antara uang di Rekening Bank (Pemilik) dan uang di Kasir Toko (Pengelola).
+                    Pemisahan transparan antara dana di Rekening Bank (Pemilik) dan Kasir Tunai Toko (Pengelola).
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 
-                {/* DOMPET 1: REKENING LAUNDRY (MAMI LINA) */}
+                {/* DOMPET 1: REKENING LAUNDRY */}
                 <div className="bg-gradient-to-br from-sky-50 via-white to-sky-50/40 p-5 rounded-2xl border-2 border-sky-300 shadow-sm space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b border-sky-100">
                     <div className="flex items-center space-x-2.5">
@@ -546,7 +546,7 @@ export default function DashboardPage() {
                         <span className="text-xs font-black uppercase tracking-wider text-sky-800 block">
                           Rekening Laundry
                         </span>
-                        <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer (Mami Lina)</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer (Pemilik)</span>
                       </div>
                     </div>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
@@ -562,7 +562,7 @@ export default function DashboardPage() {
                     <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
                       <span className="text-[11px] font-bold text-slate-600 block">Bayar via Bank</span>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa, Listrik, PAM</span>
+                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa, Listrik, PAM, Servis</span>
                     </div>
                   </div>
 
@@ -573,7 +573,7 @@ export default function DashboardPage() {
                         {formatRupiah(bankLaundryBalance)}
                       </div>
                       <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
-                        ✓ Fisik m-banking: ~Rp 500K (Klop)
+                        Mutasi Bank Terverifikasi
                       </span>
                     </div>
                     <div className="p-2.5 bg-sky-100/70 text-sky-800 rounded-2xl shrink-0">
@@ -582,7 +582,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* DOMPET 2: REKENING REPARASI (MAMI LINA) */}
+                {/* DOMPET 2: REKENING REPARASI */}
                 <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/40 p-5 rounded-2xl border-2 border-purple-300 shadow-sm space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b border-purple-100">
                     <div className="flex items-center space-x-2.5">
@@ -593,7 +593,7 @@ export default function DashboardPage() {
                         <span className="text-xs font-black uppercase tracking-wider text-purple-800 block">
                           Rekening Reparasi
                         </span>
-                        <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer (Mami Lina)</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer (Pemilik)</span>
                       </div>
                     </div>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                     <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
                       <span className="text-[11px] font-bold text-slate-600 block">Biaya via Rek. Rep</span>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankReparasiExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Tercatat di sistem</span>
+                      <span className="text-[10px] text-slate-600 block font-semibold">Bahan & Operasional</span>
                     </div>
                   </div>
 
@@ -619,8 +619,8 @@ export default function DashboardPage() {
                       <div className="text-xl sm:text-2xl font-black text-purple-700 mt-0.5">
                         {formatRupiah(bankReparasiBalance)}
                       </div>
-                      <span className="text-xs font-bold text-amber-800 flex items-center mt-1">
-                        Fisik m-banking: ~Rp 700K (Selisih 425K)
+                      <span className="text-xs font-bold text-purple-800 flex items-center mt-1">
+                        Mutasi Rekening Bank
                       </span>
                     </div>
                     <div className="p-2.5 bg-purple-100/70 text-purple-800 rounded-2xl shrink-0">
@@ -629,7 +629,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* DOMPET 3: KASIR TUNAI TOKO (PENGELOLA) */}
+                {/* DOMPET 3: KASIR TUNAI TOKO */}
                 <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-5 rounded-2xl border-2 border-emerald-300 shadow-sm space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b border-emerald-100">
                     <div className="flex items-center space-x-2.5">
@@ -640,7 +640,7 @@ export default function DashboardPage() {
                         <span className="text-xs font-black uppercase tracking-wider text-emerald-800 block">
                           Kasir Tunai Toko
                         </span>
-                        <span className="text-xs sm:text-sm font-bold text-slate-700">Dipegang Pengelola (Cash)</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-700">Operasional Kasir (Cash Toko)</span>
                       </div>
                     </div>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -667,7 +667,7 @@ export default function DashboardPage() {
                         {formatRupiah(cashBalance)}
                       </div>
                       <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
-                        Fisik dipegang pengelola: ~Rp 700K (Sisa nota sedang diinput)
+                        Operasional Toko Tunai
                       </span>
                     </div>
                     <div className="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-2xl shrink-0">
