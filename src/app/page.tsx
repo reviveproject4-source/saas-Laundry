@@ -171,9 +171,7 @@ export default function DashboardPage() {
   };
 
   const bankLaundryIncome = allIncomeTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundryExpense = allExpenseTxs
-    .filter((t) => isRekeningLaundry(t) && t.sub_category !== 'disetor_investor')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundryExpense = allExpenseTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const bankLaundryBalance = bankLaundryIncome - bankLaundryExpense;
 
   const bankReparasiIncome = allIncomeTxs.filter(isRekeningReparasi).reduce((acc, t) => acc + Number(t.amount || 0), 0);
@@ -562,18 +560,18 @@ export default function DashboardPage() {
                     <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
                       <span className="text-[11px] font-bold text-slate-600 block">Bayar via Bank</span>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa, Listrik, PAM, Servis</span>
+                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa, Listrik, Servis, Setoran 1jt</span>
                     </div>
                   </div>
 
                   <div className="p-3.5 bg-white rounded-xl border border-sky-200 shadow-xs flex justify-between items-center">
                     <div>
-                      <span className="text-xs font-bold text-sky-800 uppercase block">Saldo Rekening Laundry</span>
-                      <div className="text-xl sm:text-2xl font-black text-sky-700 mt-0.5">
+                      <span className="text-xs font-bold text-sky-800 uppercase block">Saldo Mutasi Rekening Laundry</span>
+                      <div className={`text-xl sm:text-2xl font-black mt-0.5 ${bankLaundryBalance >= 0 ? 'text-sky-700' : 'text-rose-700'}`}>
                         {formatRupiah(bankLaundryBalance)}
                       </div>
-                      <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
-                        Mutasi Bank Terverifikasi
+                      <span className="text-xs font-medium text-slate-600 flex items-center mt-1">
+                        Mutasi Masuk - Keluar Berjalan
                       </span>
                     </div>
                     <div className="p-2.5 bg-sky-100/70 text-sky-800 rounded-2xl shrink-0">
