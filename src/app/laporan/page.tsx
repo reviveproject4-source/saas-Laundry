@@ -400,7 +400,7 @@ export default function RingkasanPencatatanPage() {
                 <div>
                   <h3 className="text-lg sm:text-xl font-black text-slate-900">Catatan Penerimaan Pembayaran</h3>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sky-800 font-bold">public.transactions</code> (type: penerimaan, diverifikasi oleh Pemilik berdasarkan bukti transfer / kas)
+                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sky-800 font-bold">public.transactions</code> (type: penerimaan, Kas Tunai dicatat Pengelola & Transfer Bank dicatat Pemilik)
                   </p>
                 </div>
               </div>
@@ -523,7 +523,7 @@ export default function RingkasanPencatatanPage() {
                 <div>
                   <h3 className="text-lg sm:text-xl font-black text-slate-900">Catatan Pengeluaran Biaya</h3>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-800 font-bold">public.transactions</code> (type: pengeluaran, dicatat oleh Pemilik)
+                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-800 font-bold">public.transactions</code> (type: pengeluaran, Belanja Tunai Toko dicatat Pengelola & Biaya Bank dicatat Pemilik)
                   </p>
                 </div>
               </div>
