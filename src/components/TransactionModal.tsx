@@ -162,7 +162,7 @@ export default function TransactionModal({
         sub_category: computedSubCategory as any,
         amount: parsedAmount,
         notes: (type === 'penerimaan' ? combinedNotes : notes.trim()) || defaultSetoranNote,
-        // Kolom spesifik Metode Pembayaran & Rekening (Sesuai Aturan Mutlak Mami Lina):
+        // Kolom spesifik Metode Pembayaran & Rekening (Sesuai Aturan Mutlak):
         // SEMUA penerimaan & pengeluaran Pengelola = Murni Cash
         // SEMUA penerimaan & pengeluaran Pemilik = Murni Rekening Bank (Laundry / Reparasi)
         payment_method: (isPengelola ? 'cash' : 'transfer') as 'transfer' | 'cash',

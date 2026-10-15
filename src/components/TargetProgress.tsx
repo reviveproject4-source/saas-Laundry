@@ -30,7 +30,7 @@ export default function TargetProgress({ totalDisetor, role, onOpenSetoranModal 
                 Tetap Rp 10 Juta / Bln
               </span>
             </div>
-            <p className="text-sm text-slate-300 mt-0.5">Kewajiban cicilan serah terima usaha dari pengelola kepada pemilik (Mami Lina)</p>
+            <p className="text-sm text-slate-300 mt-0.5">Kewajiban cicilan serah terima usaha dari pengelola kepada pemilik</p>
           </div>
         </div>
 

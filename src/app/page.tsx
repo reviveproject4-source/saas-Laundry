@@ -676,7 +676,7 @@ export default function DashboardPage() {
                         {formatRupiah(cashBalance)}
                       </div>
                       <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
-                        Sisa nota buku (Fisik laci kasir saat ini: Rp 752.000)
+                        Termasuk catatan fisik Rp 752.500 & modal Rp 100.000
                       </span>
                     </div>
                     <div className="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-2xl shrink-0">
