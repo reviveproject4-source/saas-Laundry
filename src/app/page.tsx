@@ -171,7 +171,9 @@ export default function DashboardPage() {
   };
 
   const bankLaundryIncome = allIncomeTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundryExpense = allExpenseTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundryExpense = allExpenseTxs
+    .filter((t) => isRekeningLaundry(t) && t.sub_category !== 'disetor_investor')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const bankLaundryBalance = bankLaundryIncome - bankLaundryExpense;
 
   const bankReparasiIncome = allIncomeTxs.filter(isRekeningReparasi).reduce((acc, t) => acc + Number(t.amount || 0), 0);
@@ -660,12 +662,12 @@ export default function DashboardPage() {
 
                   <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-xs flex justify-between items-center">
                     <div>
-                      <span className="text-xs font-bold text-emerald-800 uppercase block">Posisi Kasir Tercatat</span>
-                      <div className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
+                      <span className="text-xs font-bold text-emerald-800 uppercase block">Saldo Kasir di Sistem</span>
+                      <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5">
                         {formatRupiah(cashBalance)}
                       </div>
                       <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
-                        Fisik kasir saat ini: ~Rp 700K
+                        Fisik dipegang pengelola: ~Rp 700K (Sisa nota sedang diinput)
                       </span>
                     </div>
                     <div className="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-2xl shrink-0">
