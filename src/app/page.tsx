@@ -227,10 +227,6 @@ export default function DashboardPage() {
     .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'disetor_investor')
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  const monthPenarikan = monthTxs
-    .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'penarikan_investor')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-
   // 4. Data Grafik 6 Hari Terakhir (Murni dari public.daily_omzet)
   const dailyData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
@@ -353,7 +349,6 @@ export default function DashboardPage() {
           {/* Target Setoran 10jt Card */}
           <TargetProgress
             totalDisetor={monthDisetor}
-            totalPenarikan={monthPenarikan}
             role={userProfile?.role}
             onOpenSetoranModal={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
           />

@@ -3,16 +3,15 @@
 import React from 'react';
 import { formatRupiah } from '@/lib/formatters';
 import { UserRole } from '@/lib/types';
-import { Target, CheckCircle2, AlertCircle, ArrowUpRight, PlusCircle } from 'lucide-react';
+import { Target, CheckCircle2, AlertCircle, PlusCircle } from 'lucide-react';
 
 interface TargetProgressProps {
   totalDisetor: number;
-  totalPenarikan: number;
   role?: UserRole;
   onOpenSetoranModal?: () => void;
 }
 
-export default function TargetProgress({ totalDisetor, totalPenarikan, role, onOpenSetoranModal }: TargetProgressProps) {
+export default function TargetProgress({ totalDisetor, role, onOpenSetoranModal }: TargetProgressProps) {
   const TARGET_SETORAN = 10000000; // Tetap Rp 10.000.000 / bulan
   const percentage = Math.min(Math.round((totalDisetor / TARGET_SETORAN) * 100), 100);
   const remaining = Math.max(TARGET_SETORAN - totalDisetor, 0);
@@ -77,7 +76,7 @@ export default function TargetProgress({ totalDisetor, totalPenarikan, role, onO
         </div>
 
         <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
-          <span className="text-slate-300 block mb-1 text-xs font-semibold">Telah Disetor Pengelola</span>
+          <span className="text-slate-300 block mb-1 text-xs font-semibold">Realisasi Setoran ke Pemilik</span>
           <span className="font-extrabold text-base text-emerald-400">{formatRupiah(totalDisetor)}</span>
         </div>
 
@@ -88,17 +87,6 @@ export default function TargetProgress({ totalDisetor, totalPenarikan, role, onO
           </span>
         </div>
       </div>
-
-      {/* Penarikan Investor Info */}
-      {totalPenarikan > 0 && (
-        <div className="mt-4 pt-3 border-t border-slate-700/80 flex items-center justify-between text-xs text-amber-300">
-          <div className="flex items-center space-x-1.5">
-            <ArrowUpRight className="w-4 h-4 text-amber-400" />
-            <span>Total Penarikan Uang (Prive) Investor Bulan Ini:</span>
-          </div>
-          <span className="font-bold text-amber-300">{formatRupiah(totalPenarikan)}</span>
-        </div>
-      )}
     </div>
   );
 }
