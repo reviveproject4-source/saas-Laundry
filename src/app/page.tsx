@@ -674,7 +674,7 @@ export default function DashboardPage() {
                         {formatRupiah(cashBalance)}
                       </div>
                       <span className="text-xs font-bold text-emerald-700 flex items-center mt-1">
-                        ✓ Klop Fisik Laci (~Rp 700.000 - Rp 750.000)
+                        ✓ Termasuk uang fisik diinput Rp 852.500
                       </span>
                     </div>
                     <div className="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-2xl shrink-0">
