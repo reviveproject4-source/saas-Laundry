@@ -52,7 +52,7 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Trio R Healthy Laundry</h1>
-          <p className="text-sm font-semibold text-slate-600">Sistem Informasi Keuangan & Operasional Outlet</p>
+          <p className="text-sm font-semibold text-slate-600">Sistem Informasi Keuangan Khusus Pemilik</p>
         </div>
 
         {/* Error Alert */}
@@ -117,7 +117,7 @@ export default function LoginPage() {
         {/* Security Note */}
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-2.5 text-xs text-slate-600 font-medium">
           <Lock className="w-4 h-4 text-sky-600 shrink-0" />
-          <span>Akses sistem aman berbasis peran (Role: Investor & Pengelola).</span>
+          <span>Portal Resmi Khusus Pemilik (Investor) Trio R Healthy Laundry.</span>
         </div>
 
       </div>

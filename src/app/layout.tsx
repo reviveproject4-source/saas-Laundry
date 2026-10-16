@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next';
 import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
-  title: 'SaaS Keuangan Laundry Sederhana',
-  description: 'Pencatatan Keuangan Laundry untuk Investor & Pengelola',
+  title: 'SaaS Keuangan Laundry - Portal Pemilik',
+  description: 'Sistem Informasi Keuangan Laundry Khusus Pemilik (Trio R)',
   manifest: '/manifest.json',
 };
 

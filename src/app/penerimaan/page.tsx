@@ -132,30 +132,20 @@ export default function PenerimaanPage() {
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Menu Penerimaan Uang</h2>
               <p className="text-sm font-semibold text-slate-600 mt-1">
-                Pencatatan uang masuk: Transfer Rekening (oleh Pemilik) dan Kas Tunai Kasir (oleh Pengelola).
+                Pencatatan uang masuk: Transfer Rekening Bank & Kas Tunai Toko.
               </p>
             </div>
 
-            {userProfile?.role === 'investor' ? (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ Input Penerimaan Rekening</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ Input Penerimaan Cash</span>
-              </button>
-            )}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>+ Input Penerimaan</span>
+            </button>
           </div>
 
-          {/* Widgets Penerimaan Terpisah Sesuai Aturan Pemilik vs Pengelola */}
+          {/* Widgets Penerimaan Tiga Dompet */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Rekening Laundry */}
             <div className="bg-sky-50/60 p-5 rounded-2xl border-2 border-sky-200 shadow-sm">
@@ -190,7 +180,7 @@ export default function PenerimaanPage() {
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-emerald-950">{formatRupiah(totalCash)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-emerald-800 mt-1">Uang Kasir (Pengelola)</div>
+              <div className="text-xs sm:text-sm font-semibold text-emerald-800 mt-1">Uang Kasir Tunai Toko</div>
             </div>
 
             {/* Total Seluruh Penerimaan */}

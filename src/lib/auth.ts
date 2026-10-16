@@ -28,14 +28,18 @@ export async function signInWithEmailPassword(email: string, password: string): 
     // 2. Verifikasi Profile & Tenant di Database Supabase
     const { profile, tenant, error: profileTenantErr } = await getCurrentAuthUser();
 
-    if (profileTenantErr && process.env.NODE_ENV !== 'production') {
-      console.error('[Diagnostic Profile/Tenant Error]:', profileTenantErr);
+    if (profileTenantErr) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[Diagnostic Profile/Tenant Error]:', profileTenantErr);
+      }
+      return { success: false, message: profileTenantErr };
     }
 
     if (!profile) {
+      await supabase.auth.signOut();
       return {
         success: false,
-        message: 'Akun berhasil login, tetapi profile belum terdaftar.',
+        message: 'Akses ditolak. Aplikasi SaaS ini dikhususkan hanya untuk Pemilik (Investor).',
       };
     }
 
@@ -86,6 +90,16 @@ export async function getCurrentAuthUser(): Promise<{
         profile: null,
         tenant: null,
         error: 'Profil pengguna tidak ditemukan di database. Silakan hubungi administrator.',
+      };
+    }
+
+    // Blokir Akses Pengelola: Sistem ini dikhususkan secara mutlak hanya untuk Pemilik (investor)
+    if (profileData.role !== 'investor') {
+      await supabase.auth.signOut();
+      return {
+        profile: null,
+        tenant: null,
+        error: 'Akses ditolak. Aplikasi SaaS ini dikhususkan hanya untuk Pemilik (Investor). Akses pengelola telah dinonaktifkan.',
       };
     }
 

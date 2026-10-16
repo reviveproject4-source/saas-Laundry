@@ -78,15 +78,15 @@ export default function OmzetModal({
 
   if (!isOpen) return null;
 
-  // Role Guard
-  if (userProfile?.role !== 'pengelola') {
+  // Role Guard: Khusus Pemilik
+  if (!userProfile || userProfile.role !== 'investor') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
         <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 text-center space-y-4">
           <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
           <h3 className="font-bold text-slate-800 text-base">Akses Ditolak</h3>
           <p className="text-xs text-slate-500">
-            Form Input Omzet Harian hanya diperuntukkan bagi peran <strong>Pengelola</strong>.
+            Form Input Omzet Harian hanya dapat diakses oleh <strong>Pemilik</strong>.
           </p>
           <button
             onClick={onClose}
@@ -135,7 +135,7 @@ export default function OmzetModal({
         omzet_reparasi: numReparasi,
         notes: notes.trim() || null,
         created_by_user_id: userProfile.id,
-        creator_name: userProfile.full_name || 'Pengelola Trio R',
+        creator_name: userProfile.full_name || 'Pemilik Trio R',
       });
 
       if (res.error || !res.data) {
@@ -165,7 +165,7 @@ export default function OmzetModal({
           <div>
             <h3 className="font-black text-slate-900 text-xl sm:text-2xl">Input Omzet Harian</h3>
             <p className="text-sm font-semibold text-slate-600 mt-1">
-              Rekap transaksi operasional harian di luar sistem (Peran: <span className="font-black text-emerald-800 uppercase">Pengelola</span>)
+              Rekap operasional harian outlet (Peran: <span className="font-black text-amber-800 uppercase">Pemilik</span>)
             </p>
           </div>
           <button

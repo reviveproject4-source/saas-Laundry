@@ -228,7 +228,7 @@ export default function RingkasanPencatatanPage() {
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Ringkasan Pencatatan</h2>
               <p className="text-sm font-semibold text-slate-600 mt-1">
-                Pencatatan internal transparansi antara Pengelola dan Pemilik (Rekap Omzet, Penerimaan Pembayaran, dan Pengeluaran Biaya).
+                Pencatatan internal pembukuan outlet (Rekap Omzet, Penerimaan Pembayaran, dan Pengeluaran Biaya).
               </p>
             </div>
 
@@ -308,7 +308,7 @@ export default function RingkasanPencatatanPage() {
                 <div>
                   <h3 className="text-lg sm:text-xl font-black text-slate-900">Rekap Omzet Operasional Harian</h3>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-emerald-800 font-bold">public.daily_omzet</code> (Dicatat oleh Pengelola berdasarkan nilai transaksi harian luar sistem)
+                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-emerald-800 font-bold">public.daily_omzet</code> (Rekap nilai transaksi kotor harian outlet)
                   </p>
                 </div>
               </div>
@@ -348,7 +348,7 @@ export default function RingkasanPencatatanPage() {
                       <th className="py-3.5 px-4 text-right">Omzet Laundry</th>
                       <th className="py-3.5 px-4 text-right">Omzet Reparasi</th>
                       <th className="py-3.5 px-4 text-right">Total Omzet</th>
-                      <th className="py-3.5 px-4">Catatan Pengelola</th>
+                      <th className="py-3.5 px-4">Catatan Rekap</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
@@ -400,7 +400,7 @@ export default function RingkasanPencatatanPage() {
                 <div>
                   <h3 className="text-lg sm:text-xl font-black text-slate-900">Catatan Penerimaan Pembayaran</h3>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sky-800 font-bold">public.transactions</code> (type: penerimaan, Kas Tunai dicatat Pengelola & Transfer Bank dicatat Pemilik)
+                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sky-800 font-bold">public.transactions</code> (type: penerimaan - Kasir Tunai & Transfer Bank)
                   </p>
                 </div>
               </div>
@@ -432,7 +432,7 @@ export default function RingkasanPencatatanPage() {
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200 shadow-sm bg-emerald-50/30">
                 <span className="text-xs sm:text-sm font-bold text-emerald-900 uppercase block mb-1">Kasir Tunai (Cash)</span>
                 <div className="text-xl sm:text-2xl font-black text-emerald-700">{formatRupiah(penerimaanCash)}</div>
-                <div className="text-xs sm:text-sm text-emerald-800 mt-1 font-semibold">Uang Kas Toko (Pengelola)</div>
+                <div className="text-xs sm:text-sm text-emerald-800 mt-1 font-semibold">Uang Kas Toko (Cash)</div>
               </div>
 
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-300 shadow-sm bg-slate-100/70">
@@ -529,7 +529,7 @@ export default function RingkasanPencatatanPage() {
                 <div>
                   <h3 className="text-lg sm:text-xl font-black text-slate-900">Catatan Pengeluaran Biaya</h3>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-800 font-bold">public.transactions</code> (type: pengeluaran, Belanja Tunai Toko dicatat Pengelola & Biaya Bank dicatat Pemilik)
+                    Sumber: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-800 font-bold">public.transactions</code> (type: pengeluaran - Belanja Kasir Toko & Biaya Rekening Bank)
                   </p>
                 </div>
               </div>

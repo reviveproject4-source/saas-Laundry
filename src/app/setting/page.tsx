@@ -96,7 +96,7 @@ export default function SettingPage() {
     );
   }
 
-  const currentRole = userProfile?.role || 'pengelola';
+  const currentRole = userProfile?.role || 'investor';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

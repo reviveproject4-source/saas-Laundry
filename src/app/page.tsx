@@ -298,62 +298,36 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-slate-600">Ringkasan performa keuangan outlet & progres setoran investor.</p>
             </div>
 
-            {userProfile?.role === 'pengelola' ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => setIsOmzetModalOpen(true)}
-                  className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Input Omzet Harian</span>
-                </button>
-                <button
-                  onClick={() => handleOpenTransactionModal('penerimaan')}
-                  className="flex items-center space-x-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Input Penerimaan Cash</span>
-                </button>
-                <button
-                  onClick={() => handleOpenTransactionModal('pengeluaran')}
-                  className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Input Pengeluaran</span>
-                </button>
-                <button
-                  onClick={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
-                  className="flex items-center space-x-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-sm transition active:scale-95"
-                >
-                  <Target className="w-4 h-4" />
-                  <span>+ Setor ke Pemilik</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => handleOpenTransactionModal('penerimaan')}
-                  className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Input Penerimaan Rekening</span>
-                </button>
-                <button
-                  onClick={() => handleOpenTransactionModal('pengeluaran')}
-                  className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Input Pengeluaran</span>
-                </button>
-                <button
-                  onClick={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
-                  className="flex items-center space-x-2 px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-sm transition active:scale-95"
-                >
-                  <Target className="w-4 h-4" />
-                  <span>+ Catat Setoran Diterima</span>
-                </button>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setIsOmzetModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Input Omzet Harian</span>
+              </button>
+              <button
+                onClick={() => handleOpenTransactionModal('penerimaan')}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Input Penerimaan</span>
+              </button>
+              <button
+                onClick={() => handleOpenTransactionModal('pengeluaran')}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Input Pengeluaran</span>
+              </button>
+              <button
+                onClick={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-sm transition active:scale-95"
+              >
+                <Target className="w-4 h-4" />
+                <span>+ Catat Setoran Diterima</span>
+              </button>
+            </div>
           </div>
 
           {/* Target Setoran 10jt Card */}
@@ -380,7 +354,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-sm font-medium text-slate-600 mt-1">
-                    Nilai transaksi kotor layanan yang diinput Pengelola (Tersimpan di tabel <code className="text-emerald-800 font-mono font-bold">daily_omzet</code>). Terlihat transparan oleh Pemilik & Pengelola.
+                    Nilai transaksi kotor layanan (Tersimpan di tabel <code className="text-emerald-800 font-mono font-bold">daily_omzet</code>).
                   </p>
                 </div>
               </div>
@@ -398,7 +372,7 @@ export default function DashboardPage() {
                       <Clock className="w-4 h-4 mr-1.5 text-amber-600" />
                       Belum Diinput Hari Ini ({todayStr})
                     </span>
-                    {userProfile?.role === 'pengelola' && (
+                    {userProfile?.role === 'investor' && (
                       <button
                         onClick={() => setIsOmzetModalOpen(true)}
                         className="text-xs sm:text-sm font-bold px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition active:scale-95 shadow-xs"
@@ -472,7 +446,7 @@ export default function DashboardPage() {
                     ? `Akumulasi 2 unit operasional hari ini`
                     : lastRecordedOmzet
                     ? `Total terakhir (${lastRecordedOmzet.date}): ${formatRupiah((lastRecordedOmzet.omzet_laundry || 0) + (lastRecordedOmzet.omzet_reparasi || 0))}`
-                    : 'Menunggu input harian pengelola'}
+                    : 'Belum ada input omzet hari ini'}
                 </div>
               </div>
 
@@ -543,25 +517,25 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Pemisahan Dua Dompet: Rekening Bank (Pemilik) vs Kasir Tunai Toko (Pengelola) */}
+            {/* Pemisahan Dua Dompet: Rekening Bank (Pemilik) vs Kasir Tunai Toko */}
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
                   <h4 className="font-black text-slate-900 text-base sm:text-lg">
-                    Pencatatan Rekening Bank (Pemilik) & Kasir Tunai (Pengelola)
+                    Pencatatan Rekening Bank (Pemilik) & Kasir Tunai Toko
                   </h4>
                   <p className="text-xs sm:text-sm font-semibold text-slate-600">
-                    Pemisahan transparan antara uang masuk dan uang keluar pada Rekening Bank (Pemilik) dan Kasir Tunai Toko (Pengelola).
+                    Pemisahan transparan antara uang masuk dan uang keluar pada Rekening Bank (Pemilik) dan Kasir Tunai Toko.
                   </p>
                 </div>
               </div>
 
-              {/* Highlight Pemasukan Pemilik vs Kasir Pengelola */}
+              {/* Highlight Pemasukan Pemilik vs Kasir Toko */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="bg-gradient-to-r from-sky-900 to-indigo-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-sky-800">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-sky-200 uppercase tracking-wider block">Total Pemasukan Bank (Khusus Pemilik)</span>
+                      <span className="text-xs font-bold text-sky-200 uppercase tracking-wider block">Total Pemasukan Bank (Rekening Pemilik)</span>
                       <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-sky-500/30 text-sky-100 border border-sky-400/40">
                         {bankIncomeCount} Nota Terbayar
                       </span>
@@ -581,7 +555,7 @@ export default function DashboardPage() {
                 <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-emerald-800">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">Total Uang Masuk Kasir (Pengelola)</span>
+                      <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">Total Uang Masuk Kasir (Tunai Toko)</span>
                       <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-100 border border-emerald-400/40">
                         {cashIncomeTxs.length} Nota Terbayar
                       </span>
