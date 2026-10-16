@@ -169,8 +169,10 @@ export default function DashboardPage() {
     return t.payment_method === 'transfer' && t.business_unit === 'reparasi';
   };
 
-  const bankLaundryIncome = allIncomeTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundryExpense = allExpenseTxs.filter(isRekeningLaundry).reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundryIncomeTxs = allIncomeTxs.filter(isRekeningLaundry);
+  const bankLaundryIncome = bankLaundryIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundryExpenseTxs = allExpenseTxs.filter(isRekeningLaundry);
+  const bankLaundryExpense = bankLaundryExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const bankLaundryOpsExpense = allExpenseTxs
     .filter(isRekeningLaundry)
     .filter((t) => t.sub_category !== 'disetor_investor')
@@ -182,21 +184,22 @@ export default function DashboardPage() {
   const bankLaundryOpsSurplus = bankLaundryIncome - bankLaundryOpsExpense;
   const bankLaundryBalance = bankLaundryIncome - bankLaundryExpense;
 
-  const bankReparasiIncome = allIncomeTxs.filter(isRekeningReparasi).reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankReparasiExpense = allExpenseTxs.filter(isRekeningReparasi).reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankReparasiIncomeTxs = allIncomeTxs.filter(isRekeningReparasi);
+  const bankReparasiIncome = bankReparasiIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankReparasiExpenseTxs = allExpenseTxs.filter(isRekeningReparasi);
+  const bankReparasiExpense = bankReparasiExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const bankReparasiBalance = bankReparasiIncome - bankReparasiExpense;
 
   const bankIncome = bankLaundryIncome + bankReparasiIncome;
+  const bankIncomeCount = bankLaundryIncomeTxs.length + bankReparasiIncomeTxs.length;
   const bankExpense = bankLaundryExpense + bankReparasiExpense;
   const bankBalance = bankIncome - bankExpense;
 
-  const cashIncome = allIncomeTxs
-    .filter((t) => t.payment_method === 'cash')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const cashIncomeTxs = allIncomeTxs.filter((t) => t.payment_method === 'cash');
+  const cashIncome = cashIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  const cashExpense = allExpenseTxs
-    .filter((t) => t.payment_method === 'cash')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const cashExpenseTxs = allExpenseTxs.filter((t) => t.payment_method === 'cash');
+  const cashExpense = cashExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
   const cashBalance = cashIncome - cashExpense;
 
@@ -216,17 +219,16 @@ export default function DashboardPage() {
     return txDate === todayStr;
   });
 
-  const todayIncomeCash = todayTxs
-    .filter((t) => t.type === 'penerimaan' && t.payment_method === 'cash')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const todayIncomeCashTxs = todayTxs.filter((t) => t.type === 'penerimaan' && t.payment_method === 'cash');
+  const todayIncomeCash = todayIncomeCashTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  const todayIncomeTransfer = todayTxs
-    .filter((t) => t.type === 'penerimaan' && t.payment_method === 'transfer')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const todayIncomeTransferTxs = todayTxs.filter((t) => t.type === 'penerimaan' && t.payment_method === 'transfer');
+  const todayIncomeTransfer = todayIncomeTransferTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  const todayExpenseTotal = todayTxs
-    .filter((t) => t.type === 'pengeluaran')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const todayIncomeTotalCount = todayIncomeCashTxs.length + todayIncomeTransferTxs.length;
+
+  const todayExpenseTxs = todayTxs.filter((t) => t.type === 'pengeluaran');
+  const todayExpenseTotal = todayExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
   // 3. Calculations: Target Setoran Bulan Ini
   const monthTxs = transactions.filter((t) => t.transaction_date && t.transaction_date.startsWith(currentMonthPrefix));
@@ -498,30 +500,50 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Cash Hari Ini */}
                 <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Kasir Tunai (Cash Hari Ini)</span>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Kasir Tunai (Cash)</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {todayIncomeCashTxs.length} Nota
+                    </span>
+                  </div>
                   <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(todayIncomeCash)}</div>
-                  <div className="text-xs font-semibold text-slate-500 mt-1">Penerimaan Kasir Tunai</div>
+                  <div className="text-xs font-semibold text-slate-500 mt-1">{todayIncomeCashTxs.length} nota uang kasir hari ini</div>
                 </div>
 
                 {/* Transfer Hari Ini */}
                 <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Transfer Rekening / QRIS Hari Ini</span>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Transfer Rekening</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">
+                      {todayIncomeTransferTxs.length} Nota
+                    </span>
+                  </div>
                   <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(todayIncomeTransfer)}</div>
-                  <div className="text-xs font-semibold text-slate-500 mt-1">Masuk Rekening Bank Pemilik</div>
+                  <div className="text-xs font-semibold text-slate-500 mt-1">{todayIncomeTransferTxs.length} nota transfer masuk bank</div>
                 </div>
 
                 {/* Pengeluaran Hari Ini */}
                 <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Pengeluaran Biaya Hari Ini</span>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Pengeluaran Biaya</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200">
+                      {todayExpenseTxs.length} Nota
+                    </span>
+                  </div>
                   <div className="text-2xl sm:text-3xl font-black text-rose-600">{formatRupiah(todayExpenseTotal)}</div>
                   <div className="text-xs font-semibold text-rose-600 mt-1">Beban Operasional & Setoran</div>
                 </div>
 
                 {/* Total Uang Masuk Hari Ini */}
                 <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Total Penerimaan Hari Ini</span>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Total Penerimaan</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      {todayIncomeTotalCount} Nota
+                    </span>
+                  </div>
                   <div className="text-2xl sm:text-3xl font-black text-emerald-600">{formatRupiah(todayIncomeCash + todayIncomeTransfer)}</div>
-                  <div className="text-xs font-semibold text-emerald-700 mt-1">Total Uang Masuk (Cash + Transfer)</div>
+                  <div className="text-xs font-semibold text-emerald-700 mt-1">Total {todayIncomeTotalCount} nota masuk hari ini</div>
                 </div>
               </div>
             </div>
@@ -543,12 +565,17 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="bg-gradient-to-r from-sky-900 to-indigo-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-sky-800">
                   <div>
-                    <span className="text-xs font-bold text-sky-200 uppercase tracking-wider block">Total Pemasukan Bank (Khusus Pemilik)</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-bold text-sky-200 uppercase tracking-wider block">Total Pemasukan Bank (Khusus Pemilik)</span>
+                      <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-sky-500/30 text-sky-100 border border-sky-400/40">
+                        {bankIncomeCount} Nota
+                      </span>
+                    </div>
                     <div className="text-2xl sm:text-3xl font-black text-white mt-0.5">
                       {formatRupiah(bankIncome)}
                     </div>
                     <span className="text-xs text-sky-200 mt-1 block font-semibold">
-                      Laundry: {formatRupiah(bankLaundryIncome)} • Reparasi: {formatRupiah(bankReparasiIncome)}
+                      Laundry: {formatRupiah(bankLaundryIncome)} ({bankLaundryIncomeTxs.length} nota) • Reparasi: {formatRupiah(bankReparasiIncome)} ({bankReparasiIncomeTxs.length} nota)
                     </span>
                   </div>
                   <div className="p-3 bg-white/10 text-sky-300 rounded-xl shrink-0">
@@ -558,12 +585,17 @@ export default function DashboardPage() {
 
                 <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-emerald-800">
                   <div>
-                    <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">Total Uang Masuk Kasir (Pengelola)</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">Total Uang Masuk Kasir (Pengelola)</span>
+                      <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-100 border border-emerald-400/40">
+                        {cashIncomeTxs.length} Nota
+                      </span>
+                    </div>
                     <div className="text-2xl sm:text-3xl font-black text-white mt-0.5">
                       {formatRupiah(cashIncome)}
                     </div>
                     <span className="text-xs text-emerald-200 mt-1 block font-semibold">
-                      Termasuk fisik kasir {formatRupiah(752500)} & modal {formatRupiah(100000)}
+                      Total {cashIncomeTxs.length} nota tunai (Termasuk fisik kasir {formatRupiah(752500)} & modal {formatRupiah(100000)})
                     </span>
                   </div>
                   <div className="p-3 bg-white/10 text-emerald-300 rounded-xl shrink-0">
@@ -595,11 +627,22 @@ export default function DashboardPage() {
 
                   <div className="grid grid-cols-2 gap-2 pt-1 text-xs sm:text-sm">
                     <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800">
+                          {bankLaundryIncomeTxs.length} Nota
+                        </span>
+                      </div>
                       <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankLaundryIncome)}</span>
+                      <span className="text-[10px] text-slate-500 block font-semibold">{bankLaundryIncomeTxs.length} nota transfer masuk</span>
                     </div>
                     <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+                          {bankLaundryExpenseTxs.length} Nota
+                        </span>
+                      </div>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
                       <span className="text-[10px] text-slate-600 block font-semibold">Sewa 3jt, Listrik, PAM, Servis, Setoran</span>
                     </div>
@@ -627,11 +670,22 @@ export default function DashboardPage() {
 
                   <div className="grid grid-cols-2 gap-2 pt-1 text-xs sm:text-sm">
                     <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800">
+                          {bankReparasiIncomeTxs.length} Nota
+                        </span>
+                      </div>
                       <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankReparasiIncome)}</span>
+                      <span className="text-[10px] text-slate-500 block font-semibold">{bankReparasiIncomeTxs.length} nota transfer masuk</span>
                     </div>
                     <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+                          {bankReparasiExpenseTxs.length} Nota
+                        </span>
+                      </div>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankReparasiExpense)}</span>
                       <span className="text-[10px] text-slate-600 block font-semibold">Gaji Bu Linna 800k + Sparepart 100k</span>
                     </div>
@@ -659,11 +713,22 @@ export default function DashboardPage() {
 
                   <div className="grid grid-cols-2 gap-2 pt-1 text-xs sm:text-sm">
                     <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Cash Masuk Tercatat</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[11px] font-bold text-slate-600 block">Cash Masuk</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                          {cashIncomeTxs.length} Nota
+                        </span>
+                      </div>
                       <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(cashIncome)}</span>
+                      <span className="text-[10px] text-slate-500 block font-semibold">{cashIncomeTxs.length} nota tunai kasir</span>
                     </div>
                     <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Belanja Toko (Cash)</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[11px] font-bold text-slate-600 block">Belanja Toko (Cash)</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+                          {cashExpenseTxs.length} Nota
+                        </span>
+                      </div>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(cashExpense)}</span>
                       <span className="text-[10px] text-slate-600 block font-semibold">Bensin, gas, harian</span>
                     </div>
@@ -678,18 +743,24 @@ export default function DashboardPage() {
                   <div>
                     <span className="text-xs font-bold text-slate-600 uppercase block">Total Seluruh Penerimaan (Semua)</span>
                     <span className="text-xl sm:text-2xl font-black text-emerald-700">{formatRupiah(totalIncome)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
+                      Total {allIncomeTxs.length} nota masuk ({bankIncomeCount} transfer + {cashIncomeTxs.length} cash)
+                    </span>
                   </div>
                   <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
-                    Bank + Cash
+                    {allIncomeTxs.length} Nota Masuk
                   </span>
                 </div>
                 <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
                   <div>
                     <span className="text-xs font-bold text-slate-600 uppercase block">Total Seluruh Pengeluaran (Semua)</span>
                     <span className="text-xl sm:text-2xl font-black text-rose-700">{formatRupiah(totalExpense)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
+                      Total {allExpenseTxs.length} nota keluar ({bankLaundryExpenseTxs.length + bankReparasiExpenseTxs.length} bank + {cashExpenseTxs.length} cash)
+                    </span>
                   </div>
                   <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
-                    Bank + Toko
+                    {allExpenseTxs.length} Nota Keluar
                   </span>
                 </div>
               </div>
