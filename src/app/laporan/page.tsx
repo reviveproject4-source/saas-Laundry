@@ -410,29 +410,35 @@ export default function RingkasanPencatatanPage() {
             </div>
 
             {/* Summary Cards Kelompok 2 */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1.5">Rekening Laundry</span>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(penerimaanRekeningLaundry)}</div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Transfer Rekening Laundry</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-sky-200 shadow-sm bg-sky-50/20">
+                <span className="text-xs sm:text-sm font-bold text-sky-900 uppercase block mb-1">Rekening Laundry</span>
+                <div className="text-xl sm:text-2xl font-black text-sky-800">{formatRupiah(penerimaanRekeningLaundry)}</div>
+                <div className="text-xs sm:text-sm text-sky-800 mt-1 font-semibold">Transfer Laundry (Pemilik)</div>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1.5">Rekening Reparasi</span>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(penerimaanRekeningReparasi)}</div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Transfer Rekening Reparasi</div>
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-purple-200 shadow-sm bg-purple-50/20">
+                <span className="text-xs sm:text-sm font-bold text-purple-900 uppercase block mb-1">Rekening Reparasi</span>
+                <div className="text-xl sm:text-2xl font-black text-purple-800">{formatRupiah(penerimaanRekeningReparasi)}</div>
+                <div className="text-xs sm:text-sm text-purple-800 mt-1 font-semibold">Transfer Reparasi (Pemilik)</div>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1.5">Kasir Tunai (Cash)</span>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(penerimaanCash)}</div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 font-semibold">Uang Kas Masuk</div>
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-indigo-200 shadow-sm bg-indigo-50/30">
+                <span className="text-xs sm:text-sm font-bold text-indigo-900 uppercase block mb-1">Total Bank (Pemilik)</span>
+                <div className="text-xl sm:text-2xl font-black text-indigo-700">{formatRupiah(penerimaanRekeningLaundry + penerimaanRekeningReparasi)}</div>
+                <div className="text-xs sm:text-sm text-indigo-800 mt-1 font-bold">Laundry + Reparasi</div>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-sky-200 shadow-sm bg-sky-50/40">
-                <span className="text-xs sm:text-sm font-bold text-sky-800 uppercase block mb-1.5">Total Penerimaan Uang</span>
-                <div className="text-2xl sm:text-3xl font-black text-sky-700">{formatRupiah(totalPenerimaan)}</div>
-                <div className="text-xs sm:text-sm text-sky-800 mt-1 font-bold">Rekening + Cash Masuk</div>
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200 shadow-sm bg-emerald-50/30">
+                <span className="text-xs sm:text-sm font-bold text-emerald-900 uppercase block mb-1">Kasir Tunai (Cash)</span>
+                <div className="text-xl sm:text-2xl font-black text-emerald-700">{formatRupiah(penerimaanCash)}</div>
+                <div className="text-xs sm:text-sm text-emerald-800 mt-1 font-semibold">Uang Kas Toko (Pengelola)</div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-300 shadow-sm bg-slate-100/70">
+                <span className="text-xs sm:text-sm font-bold text-slate-700 uppercase block mb-1">Total Penerimaan</span>
+                <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(totalPenerimaan)}</div>
+                <div className="text-xs sm:text-sm text-slate-600 mt-1 font-bold">Bank + Kasir Cash</div>
               </div>
             </div>
 

@@ -540,6 +540,39 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Highlight Pemasukan Pemilik vs Kasir Pengelola */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-gradient-to-r from-sky-900 to-indigo-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-sky-800">
+                  <div>
+                    <span className="text-xs font-bold text-sky-200 uppercase tracking-wider block">Total Pemasukan Bank (Khusus Pemilik)</span>
+                    <div className="text-2xl sm:text-3xl font-black text-white mt-0.5">
+                      {formatRupiah(bankIncome)}
+                    </div>
+                    <span className="text-xs text-sky-200 mt-1 block font-semibold">
+                      Laundry: {formatRupiah(bankLaundryIncome)} • Reparasi: {formatRupiah(bankReparasiIncome)}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-white/10 text-sky-300 rounded-xl shrink-0">
+                    <CreditCard className="w-6 h-6" />
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-emerald-800">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">Total Uang Masuk Kasir (Pengelola)</span>
+                    <div className="text-2xl sm:text-3xl font-black text-white mt-0.5">
+                      {formatRupiah(cashIncome)}
+                    </div>
+                    <span className="text-xs text-emerald-200 mt-1 block font-semibold">
+                      Termasuk fisik kasir {formatRupiah(752500)} & modal {formatRupiah(100000)}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-white/10 text-emerald-300 rounded-xl shrink-0">
+                    <Banknote className="w-6 h-6" />
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 
                 {/* DOMPET 1: REKENING LAUNDRY */}
@@ -576,13 +609,16 @@ export default function DashboardPage() {
                   <div className="p-3.5 bg-white rounded-xl border border-sky-200 shadow-xs flex justify-between items-center">
                     <div>
                       <span className="text-xs font-bold text-slate-700 uppercase block">
-                        {bankLaundryBalance >= 0 ? 'Surplus Mutasi Rekening' : 'Saldo Mutasi Buku Rekening'}
+                        Saldo Mutasi Buku Rekening
                       </span>
                       <div className={`text-xl sm:text-2xl font-black mt-0.5 ${bankLaundryBalance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                         {formatRupiah(bankLaundryBalance)}
                       </div>
-                      <span className="text-xs font-bold text-slate-600 flex items-center mt-1">
-                        Sewa 3jt + Setoran 1jt (Fisik m-Banking ~Rp 400.000)
+                      <span className="text-xs font-bold text-emerald-700 flex items-center mt-1">
+                        Surplus Operasional Toko: +{formatRupiah(bankLaundryOpsSurplus)}
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-500 block mt-0.5">
+                        (Setelah potong Setoran 1jt, fisik m-Banking ~Rp 400.000)
                       </span>
                     </div>
                     <div className="p-2.5 bg-sky-100/70 text-sky-800 rounded-2xl shrink-0">

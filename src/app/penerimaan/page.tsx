@@ -86,9 +86,25 @@ export default function PenerimaanPage() {
   const totalCash = incomeTxs
     .filter((t) => t.payment_method === 'cash')
     .reduce((acc, t) => acc + Number(t.amount), 0);
-  const totalTransfer = incomeTxs
-    .filter((t) => t.payment_method === 'transfer')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
+  const isRekeningLaundry = (t: Transaction) => {
+    if (t.bank_account === 'rekening_laundry') return true;
+    if (t.bank_account === 'rekening_reparasi') return false;
+    return t.payment_method === 'transfer' && t.business_unit !== 'reparasi';
+  };
+
+  const isRekeningReparasi = (t: Transaction) => {
+    if (t.bank_account === 'rekening_reparasi') return true;
+    if (t.bank_account === 'rekening_laundry') return false;
+    return t.payment_method === 'transfer' && t.business_unit === 'reparasi';
+  };
+
+  const totalTransferLaundry = incomeTxs
+    .filter(isRekeningLaundry)
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const totalTransferReparasi = incomeTxs
+    .filter(isRekeningReparasi)
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const totalTransfer = totalTransferLaundry + totalTransferReparasi;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -139,39 +155,54 @@ export default function PenerimaanPage() {
             )}
           </div>
 
-          {/* Widgets */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          {/* Widgets Penerimaan Terpisah Sesuai Aturan Pemilik vs Pengelola */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Rekening Laundry */}
+            <div className="bg-sky-50/60 p-5 rounded-2xl border-2 border-sky-200 shadow-sm">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Total Uang Diterima</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <ArrowDownLeft className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-600">{formatRupiah(totalIncome)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Laundry + Reparasi</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Penerimaan Cash</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <Banknote className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(totalCash)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Uang Tunai Kasir</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Penerimaan Transfer</span>
-                <div className="p-2 bg-sky-50 text-sky-600 rounded-xl">
+                <span className="text-xs sm:text-sm font-extrabold text-sky-900 uppercase">Rekening Laundry</span>
+                <div className="p-2 bg-sky-100 text-sky-700 rounded-xl">
                   <CreditCard className="w-5 h-5" />
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(totalTransfer)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">Transfer Bank / QRIS</div>
+              <div className="text-2xl sm:text-3xl font-black text-sky-900">{formatRupiah(totalTransferLaundry)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-sky-800 mt-1">Transfer Bank (Pemilik)</div>
+            </div>
+
+            {/* Rekening Reparasi */}
+            <div className="bg-purple-50/60 p-5 rounded-2xl border-2 border-purple-200 shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs sm:text-sm font-extrabold text-purple-900 uppercase">Rekening Reparasi</span>
+                <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-purple-900">{formatRupiah(totalTransferReparasi)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-purple-800 mt-1">Transfer Bank (Pemilik)</div>
+            </div>
+
+            {/* Kasir Tunai Toko */}
+            <div className="bg-emerald-50/60 p-5 rounded-2xl border-2 border-emerald-200 shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs sm:text-sm font-extrabold text-emerald-900 uppercase">Kasir Tunai (Cash)</span>
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <Banknote className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-950">{formatRupiah(totalCash)}</div>
+              <div className="text-xs sm:text-sm font-semibold text-emerald-800 mt-1">Uang Kasir (Pengelola)</div>
+            </div>
+
+            {/* Total Seluruh Penerimaan */}
+            <div className="bg-white p-5 rounded-2xl border-2 border-slate-300 shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs sm:text-sm font-extrabold text-slate-700 uppercase">Total Uang Masuk</span>
+                <div className="p-2 bg-slate-100 text-slate-700 rounded-xl">
+                  <ArrowDownLeft className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(totalIncome)}</div>
+              <div className="text-xs sm:text-sm font-bold text-slate-600 mt-1">Bank ({formatRupiah(totalTransfer)}) + Cash</div>
             </div>
           </div>
 
