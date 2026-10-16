@@ -608,17 +608,17 @@ export default function DashboardPage() {
 
                   <div className="p-3.5 bg-white rounded-xl border border-sky-200 shadow-xs flex justify-between items-center">
                     <div>
-                      <span className="text-xs font-bold text-slate-700 uppercase block">
-                        Saldo Mutasi Buku Rekening
+                      <span className="text-xs font-bold text-sky-800 uppercase block">
+                        Surplus Operasional Laundry
                       </span>
-                      <div className={`text-xl sm:text-2xl font-black mt-0.5 ${bankLaundryBalance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {formatRupiah(bankLaundryBalance)}
+                      <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-700">
+                        +{formatRupiah(bankLaundryOpsSurplus)}
                       </div>
-                      <span className="text-xs font-bold text-emerald-700 flex items-center mt-1">
-                        Surplus Operasional Toko: +{formatRupiah(bankLaundryOpsSurplus)}
+                      <span className="text-xs font-semibold text-slate-600 flex items-center mt-1">
+                        Penerimaan transfer surplus menutup seluruh operasional pokok (Sewa 3jt, Listrik, PAM, Servis)
                       </span>
-                      <span className="text-[11px] font-semibold text-slate-500 block mt-0.5">
-                        (Setelah potong Setoran 1jt, fisik m-Banking ~Rp 400.000)
+                      <span className="text-[11px] font-bold text-amber-700 block mt-0.5">
+                        Setoran Cicilan Diambil Pemilik: {formatRupiah(bankLaundrySetoran)}
                       </span>
                     </div>
                     <div className="p-2.5 bg-sky-100/70 text-sky-800 rounded-2xl shrink-0">
@@ -660,12 +660,12 @@ export default function DashboardPage() {
 
                   <div className="p-3.5 bg-white rounded-xl border border-purple-200 shadow-xs flex justify-between items-center">
                     <div>
-                      <span className="text-xs font-bold text-purple-800 uppercase block">Saldo Rekening Reparasi</span>
+                      <span className="text-xs font-bold text-purple-800 uppercase block">Surplus Operasional Reparasi</span>
                       <div className="text-xl sm:text-2xl font-black text-purple-700 mt-0.5">
-                        {formatRupiah(bankReparasiBalance)}
+                        +{formatRupiah(bankReparasiBalance)}
                       </div>
-                      <span className="text-xs font-bold text-purple-700 flex items-center mt-1">
-                        Mutasi Rekening Bank Reparasi
+                      <span className="text-xs font-semibold text-slate-600 flex items-center mt-1">
+                        Penerimaan (2 Juta) - Biaya (Gaji Bu Linna 800k + Sparepart 100k)
                       </span>
                     </div>
                     <div className="p-2.5 bg-purple-100/70 text-purple-800 rounded-2xl shrink-0">
