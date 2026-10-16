@@ -616,9 +616,9 @@ export default function DashboardPage() {
                       <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankReparasiIncome)}</span>
                     </div>
                     <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Beli Sparepart</span>
+                      <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankReparasiExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Sparepart koper & tas</span>
+                      <span className="text-[10px] text-slate-600 block font-semibold">Gaji Bu Linna 800k + Sparepart 100k</span>
                     </div>
                   </div>
 
