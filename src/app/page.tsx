@@ -29,7 +29,6 @@ import {
   Target,
   ShieldCheck,
   TrendingUp,
-  Wallet,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -483,7 +482,7 @@ export default function DashboardPage() {
           {/* ========================================================= */}
           <div className="space-y-4">
             <div>
-              <h3 className="font-black text-slate-900 text-lg sm:text-xl">Arus Penerimaan Kas & Mutasi Bank</h3>
+              <h3 className="font-black text-slate-900 text-lg sm:text-xl">Arus Uang Masuk & Uang Keluar (Penerimaan vs Pengeluaran)</h3>
               <p className="text-sm font-medium text-slate-600">
                 Pencatatan uang masuk kasir/bank dan biaya operasional yang tercatat di buku transaksi (<code className="text-sky-800 font-mono font-bold">transactions</code>).
               </p>
@@ -532,10 +531,10 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
                   <h4 className="font-black text-slate-900 text-base sm:text-lg">
-                    Pemisahan Saldo: Rekening Bank vs Kasir Tunai
+                    Pencatatan Rekening Bank (Pemilik) & Kasir Tunai (Pengelola)
                   </h4>
                   <p className="text-xs sm:text-sm font-semibold text-slate-600">
-                    Pemisahan transparan antara dana di Rekening Bank (Pemilik) dan Kasir Tunai Toko (Pengelola).
+                    Pemisahan transparan antara uang masuk dan uang keluar pada Rekening Bank (Pemilik) dan Kasir Tunai Toko (Pengelola).
                   </p>
                 </div>
               </div>
@@ -600,29 +599,9 @@ export default function DashboardPage() {
                       <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankLaundryIncome)}</span>
                     </div>
                     <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Operasional Pokok</span>
-                      <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryOpsExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa 3jt, Listrik, PAM, Servis</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-white rounded-xl border border-sky-200 shadow-xs flex justify-between items-center">
-                    <div>
-                      <span className="text-xs font-bold text-sky-800 uppercase block">
-                        Surplus Operasional Laundry
-                      </span>
-                      <div className="text-xl sm:text-2xl font-black mt-0.5 text-emerald-700">
-                        +{formatRupiah(bankLaundryOpsSurplus)}
-                      </div>
-                      <span className="text-xs font-semibold text-slate-600 flex items-center mt-1">
-                        Penerimaan transfer surplus menutup seluruh operasional pokok (Sewa 3jt, Listrik, PAM, Servis)
-                      </span>
-                      <span className="text-[11px] font-bold text-amber-700 block mt-0.5">
-                        Setoran Cicilan Diambil Pemilik: {formatRupiah(bankLaundrySetoran)}
-                      </span>
-                    </div>
-                    <div className="p-2.5 bg-sky-100/70 text-sky-800 rounded-2xl shrink-0">
-                      <Wallet className="w-6 h-6" />
+                      <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
+                      <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
+                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa 3jt, Listrik, PAM, Servis, Setoran</span>
                     </div>
                   </div>
                 </div>
@@ -657,21 +636,6 @@ export default function DashboardPage() {
                       <span className="text-[10px] text-slate-600 block font-semibold">Gaji Bu Linna 800k + Sparepart 100k</span>
                     </div>
                   </div>
-
-                  <div className="p-3.5 bg-white rounded-xl border border-purple-200 shadow-xs flex justify-between items-center">
-                    <div>
-                      <span className="text-xs font-bold text-purple-800 uppercase block">Surplus Operasional Reparasi</span>
-                      <div className="text-xl sm:text-2xl font-black text-purple-700 mt-0.5">
-                        +{formatRupiah(bankReparasiBalance)}
-                      </div>
-                      <span className="text-xs font-semibold text-slate-600 flex items-center mt-1">
-                        Penerimaan (2 Juta) - Biaya (Gaji Bu Linna 800k + Sparepart 100k)
-                      </span>
-                    </div>
-                    <div className="p-2.5 bg-purple-100/70 text-purple-800 rounded-2xl shrink-0">
-                      <Wallet className="w-6 h-6" />
-                    </div>
-                  </div>
                 </div>
 
                 {/* DOMPET 3: KASIR TUNAI TOKO */}
@@ -702,21 +666,6 @@ export default function DashboardPage() {
                       <span className="text-[11px] font-bold text-slate-600 block">Belanja Toko (Cash)</span>
                       <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(cashExpense)}</span>
                       <span className="text-[10px] text-slate-600 block font-semibold">Bensin, gas, harian</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-xs flex justify-between items-center">
-                    <div>
-                      <span className="text-xs font-bold text-emerald-800 uppercase block">Saldo Kasir di Sistem</span>
-                      <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5">
-                        {formatRupiah(cashBalance)}
-                      </div>
-                      <span className="text-xs font-bold text-emerald-800 flex items-center mt-1">
-                        Termasuk catatan fisik Rp 752.500 & modal Rp 100.000
-                      </span>
-                    </div>
-                    <div className="p-2.5 bg-emerald-100/70 text-emerald-800 rounded-2xl shrink-0">
-                      <Coins className="w-6 h-6" />
                     </div>
                   </div>
                 </div>
