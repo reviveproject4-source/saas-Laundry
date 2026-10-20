@@ -29,6 +29,8 @@ import {
   Target,
   ShieldCheck,
   TrendingUp,
+  User,
+  Wallet,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -93,7 +95,15 @@ export default function DashboardPage() {
 
   const handleTransactionSuccess = (newTx: Transaction) => {
     setTransactions((prev) => [newTx, ...prev]);
-    setSuccessMessage(newTx.type === 'penerimaan' ? 'Pemasukan berhasil disimpan.' : 'Pengeluaran berhasil disimpan.');
+    const label =
+      newTx.type === 'penerimaan'
+        ? 'Penerimaan berhasil disimpan.'
+        : newTx.sub_category === 'penarikan_investor'
+        ? 'Pengeluaran pribadi (Prive) berhasil disimpan.'
+        : newTx.sub_category === 'disetor_investor'
+        ? 'Setoran target berhasil disimpan.'
+        : 'Pengeluaran operasional berhasil disimpan.';
+    setSuccessMessage(label);
     setTimeout(() => {
       setSuccessMessage(null);
     }, 4000);
@@ -169,51 +179,68 @@ export default function DashboardPage() {
     return t.payment_method === 'transfer' && t.business_unit === 'reparasi';
   };
 
+  // Penerimaan Bank Laundry & Reparasi
   const bankLaundryIncomeTxs = allIncomeTxs.filter(isRekeningLaundry);
   const bankLaundryIncome = bankLaundryIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  
+  // Pengeluaran Bank Laundry (Detail itemized)
   const bankLaundryExpenseTxs = allExpenseTxs.filter(isRekeningLaundry);
   const bankLaundryExpense = bankLaundryExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundryOpsExpense = allExpenseTxs
-    .filter(isRekeningLaundry)
-    .filter((t) => t.sub_category !== 'disetor_investor')
+  
+  const bankLaundrySewa = bankLaundryExpenseTxs
+    .filter((t) => (t.notes || '').toLowerCase().includes('sewa'))
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundrySetoran = allExpenseTxs
-    .filter(isRekeningLaundry)
+  const bankLaundrySetoran = bankLaundryExpenseTxs
     .filter((t) => t.sub_category === 'disetor_investor')
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundryOpsSurplus = bankLaundryIncome - bankLaundryOpsExpense;
-  const bankLaundryBalance = bankLaundryIncome - bankLaundryExpense;
+  const bankLaundryPribadi = bankLaundryExpenseTxs
+    .filter((t) => t.sub_category === 'penarikan_investor')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const bankLaundryOpsExpense = bankLaundryExpense - bankLaundrySewa - bankLaundrySetoran - bankLaundryPribadi;
 
+  // Penerimaan & Pengeluaran Bank Reparasi
   const bankReparasiIncomeTxs = allIncomeTxs.filter(isRekeningReparasi);
   const bankReparasiIncome = bankReparasiIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const bankReparasiExpenseTxs = allExpenseTxs.filter(isRekeningReparasi);
   const bankReparasiExpense = bankReparasiExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankReparasiBalance = bankReparasiIncome - bankReparasiExpense;
 
   const bankIncome = bankLaundryIncome + bankReparasiIncome;
   const bankIncomeCount = bankLaundryIncomeTxs.length + bankReparasiIncomeTxs.length;
-  const bankExpense = bankLaundryExpense + bankReparasiExpense;
-  const bankBalance = bankIncome - bankExpense;
 
+  // Kasir Tunai Toko
   const cashIncomeTxs = allIncomeTxs.filter((t) => t.payment_method === 'cash');
   const cashIncome = cashIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-
   const cashExpenseTxs = allExpenseTxs.filter((t) => t.payment_method === 'cash');
   const cashExpense = cashExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  const cashBalance = cashIncome - cashExpense;
+  // Kategori Khusus: Pengeluaran Pribadi Pemilik (Prive)
+  const personalExpenseTxs = allExpenseTxs.filter((t) => t.sub_category === 'penarikan_investor');
+  const totalPersonalExpense = personalExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const personalExpenseCash = personalExpenseTxs
+    .filter((t) => t.payment_method === 'cash')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const personalExpenseRekLaundry = personalExpenseTxs
+    .filter(isRekeningLaundry)
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const personalExpenseRekReparasi = personalExpenseTxs
+    .filter(isRekeningReparasi)
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  // Murni Biaya Operasional Toko (di luar Setoran dan di luar Prive Pribadi)
+  const operationalExpenseTxs = allExpenseTxs.filter(
+    (t) => t.sub_category !== 'disetor_investor' && t.sub_category !== 'penarikan_investor'
+  );
+  const totalOperationalExpense = operationalExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const operationalProfit = totalIncome - totalOperationalExpense;
 
   // 2. Calculations: Hari Ini (Berdasarkan tanggal lokal outlet)
-  // A. Omzet Harian (Murni dari public.daily_omzet, BUKAN dari transactions)
   const todayOmzetRecord = dailyOmzetList.find((o) => o.date === todayStr);
   const todayOmzetLaundry = todayOmzetRecord ? Number(todayOmzetRecord.omzet_laundry || 0) : 0;
   const todayOmzetReparasi = todayOmzetRecord ? Number(todayOmzetRecord.omzet_reparasi || 0) : 0;
   const todayOmzetTotal = todayOmzetLaundry + todayOmzetReparasi;
 
-  // Rekap Terakhir yang Ada (Sebagai referensi jika hari ini belum diinput)
   const lastRecordedOmzet = dailyOmzetList.length > 0 ? dailyOmzetList[0] : null;
 
-  // B. Penerimaan & Pengeluaran Hari Ini (Murni dari public.transactions)
   const todayTxs = transactions.filter((t) => {
     const txDate = t.transaction_date ? t.transaction_date.substring(0, 10) : '';
     return txDate === todayStr;
@@ -229,10 +256,12 @@ export default function DashboardPage() {
 
   const todayExpenseTxs = todayTxs.filter((t) => t.type === 'pengeluaran');
   const todayExpenseTotal = todayExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  
+  const todayPersonalExpenseTxs = todayExpenseTxs.filter((t) => t.sub_category === 'penarikan_investor');
+  const todayPersonalExpense = todayPersonalExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
   // 3. Calculations: Target Setoran Bulan Ini
   const monthTxs = transactions.filter((t) => t.transaction_date && t.transaction_date.startsWith(currentMonthPrefix));
-
   const monthDisetor = monthTxs
     .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'disetor_investor')
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
@@ -301,31 +330,38 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setIsOmzetModalOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center space-x-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>+ Input Omzet Harian</span>
               </button>
               <button
                 onClick={() => handleOpenTransactionModal('penerimaan')}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center space-x-2 px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>+ Input Penerimaan</span>
               </button>
               <button
                 onClick={() => handleOpenTransactionModal('pengeluaran')}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center space-x-2 px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>+ Input Pengeluaran</span>
+                <span>+ Input Biaya Toko</span>
+              </button>
+              <button
+                onClick={() => handleOpenTransactionModal('pengeluaran', 'penarikan_investor')}
+                className="flex items-center space-x-2 px-3.5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
+              >
+                <User className="w-4 h-4" />
+                <span>+ Pengeluaran Pribadi</span>
               </button>
               <button
                 onClick={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center space-x-2 px-3.5 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
               >
                 <Target className="w-4 h-4" />
-                <span>+ Catat Setoran Diterima</span>
+                <span>+ Catat Setoran</span>
               </button>
             </div>
           </div>
@@ -460,59 +496,66 @@ export default function DashboardPage() {
             <div>
               <h3 className="font-black text-slate-900 text-lg sm:text-xl">Arus Uang Masuk & Uang Keluar (Penerimaan vs Pengeluaran)</h3>
               <p className="text-sm font-medium text-slate-600">
-                Pencatatan uang masuk kasir/bank dan biaya operasional yang tercatat di buku transaksi (<code className="text-sky-800 font-mono font-bold">transactions</code>).
+                Pencatatan uang masuk kasir/bank, biaya operasional toko, dan pengeluaran pribadi pemilik di buku transaksi (<code className="text-sky-800 font-mono font-bold">transactions</code>).
               </p>
             </div>
 
             {/* Ringkasan Hari Ini */}
             <div className="bg-slate-100/90 p-5 rounded-2xl border border-slate-200 space-y-3">
               <div className="flex justify-between items-center px-1">
-                <span className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Penerimaan & Biaya Hari Ini ({todayStr})</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-600">{todayTxs.length} Transaksi Kas/Bank Hari Ini</span>
+                <span className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Penerimaan & Pengeluaran Hari Ini ({todayStr})</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-600">{todayTxs.length} Transaksi Hari Ini</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {/* Cash Hari Ini */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Kasir Tunai (Cash)</span>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      {todayIncomeCashTxs.length} Nota Terbayar
+                    <span className="text-xs font-bold text-slate-600 uppercase">Kasir Tunai (Cash)</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {todayIncomeCashTxs.length} Nota
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(todayIncomeCash)}</div>
-                  <div className="text-xs font-semibold text-slate-500 mt-1">{todayIncomeCashTxs.length} nota terbayar kasir hari ini</div>
+                  <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(todayIncomeCash)}</div>
+                  <div className="text-[11px] font-semibold text-slate-500 mt-1">{todayIncomeCashTxs.length} nota kasir terbayar</div>
                 </div>
 
                 {/* Transfer Hari Ini */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Transfer Rekening</span>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">
-                      {todayIncomeTransferTxs.length} Nota Terbayar
+                    <span className="text-xs font-bold text-slate-600 uppercase">Transfer Bank</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">
+                      {todayIncomeTransferTxs.length} Nota
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(todayIncomeTransfer)}</div>
-                  <div className="text-xs font-semibold text-slate-500 mt-1">{todayIncomeTransferTxs.length} nota terbayar via transfer hari ini</div>
+                  <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(todayIncomeTransfer)}</div>
+                  <div className="text-[11px] font-semibold text-slate-500 mt-1">{todayIncomeTransferTxs.length} transfer bank terbayar</div>
                 </div>
 
-                {/* Pengeluaran Hari Ini */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase block mb-1">Pengeluaran Biaya Hari Ini</span>
-                  <div className="text-2xl sm:text-3xl font-black text-rose-600">{formatRupiah(todayExpenseTotal)}</div>
-                  <div className="text-xs font-semibold text-rose-600 mt-1">Beban Operasional & Setoran</div>
+                {/* Biaya Toko Hari Ini */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                  <span className="text-xs font-bold text-slate-600 uppercase block mb-1">Biaya Toko Hari Ini</span>
+                  <div className="text-xl sm:text-2xl font-black text-rose-600">{formatRupiah(todayExpenseTotal - todayPersonalExpense)}</div>
+                  <div className="text-[11px] font-semibold text-rose-600 mt-1">Operasional & Setoran</div>
+                </div>
+
+                {/* Pengeluaran Pribadi Hari Ini */}
+                <div className="bg-white p-4 rounded-xl border border-purple-200 shadow-2xs">
+                  <span className="text-xs font-bold text-purple-800 uppercase block mb-1">Prive Pribadi Hari Ini</span>
+                  <div className="text-xl sm:text-2xl font-black text-purple-700">{formatRupiah(todayPersonalExpense)}</div>
+                  <div className="text-[11px] font-semibold text-purple-600 mt-1">Penarikan Pemilik</div>
                 </div>
 
                 {/* Total Uang Masuk Hari Ini */}
-                <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase">Total Penerimaan</span>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
-                      {todayIncomeTotalCount} Nota Terbayar
+                    <span className="text-xs font-bold text-slate-600 uppercase">Total Penerimaan</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      {todayIncomeTotalCount} Nota
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-emerald-600">{formatRupiah(todayIncomeCash + todayIncomeTransfer)}</div>
-                  <div className="text-xs font-semibold text-emerald-700 mt-1">Total {todayIncomeTotalCount} nota terbayar hari ini</div>
+                  <div className="text-xl sm:text-2xl font-black text-emerald-600">{formatRupiah(todayIncomeCash + todayIncomeTransfer)}</div>
+                  <div className="text-[11px] font-semibold text-emerald-700 mt-1">Total uang masuk</div>
                 </div>
               </div>
             </div>
@@ -544,7 +587,7 @@ export default function DashboardPage() {
                       {formatRupiah(bankIncome)}
                     </div>
                     <span className="text-xs text-sky-200 mt-1 block font-semibold">
-                      Laundry: {formatRupiah(bankLaundryIncome)} ({bankLaundryIncomeTxs.length} nota terbayar) • Reparasi: {formatRupiah(bankReparasiIncome)} ({bankReparasiIncomeTxs.length} nota terbayar)
+                      Laundry: {formatRupiah(bankLaundryIncome)} ({bankLaundryIncomeTxs.length} nota) • Reparasi: {formatRupiah(bankReparasiIncome)} ({bankReparasiIncomeTxs.length} nota)
                     </span>
                   </div>
                   <div className="p-3 bg-white/10 text-sky-300 rounded-xl shrink-0">
@@ -573,6 +616,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* 3 KARTU DOMPET DETAIL */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 
                 {/* DOMPET 1: REKENING LAUNDRY */}
@@ -594,21 +638,54 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs sm:text-sm">
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
-                      <div className="flex justify-between items-center mb-0.5">
+                  <div className="space-y-3 pt-1 text-xs sm:text-sm">
+                    {/* Transfer Masuk */}
+                    <div className="bg-white/80 p-3 rounded-xl border border-sky-100 flex justify-between items-center">
+                      <div>
                         <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800">
-                          {bankLaundryIncomeTxs.length} Nota Terbayar
+                        <span className="text-base font-black text-emerald-700">{formatRupiah(bankLaundryIncome)}</span>
+                      </div>
+                      <span className="text-[11px] font-extrabold px-2 py-0.5 rounded bg-sky-100 text-sky-800">
+                        {bankLaundryIncomeTxs.length} Nota Terbayar
+                      </span>
+                    </div>
+
+                    {/* Pengeluaran Bank & Rincian Transparan */}
+                    <div className="bg-white/90 p-3 rounded-xl border border-sky-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-600 block">Total Pengeluaran Bank</span>
+                          <span className="text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
+                          {bankLaundryExpenseTxs.length} Transaksi
                         </span>
                       </div>
-                      <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankLaundryIncome)}</span>
-                      <span className="text-[10px] text-slate-500 block font-semibold">{bankLaundryIncomeTxs.length} nota terbayar via transfer</span>
-                    </div>
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-sky-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
-                      <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Sewa 3jt, Listrik, PAM, Servis, Setoran</span>
+
+                      {/* Rincian Item Transparan agar Mami Lina Jelas */}
+                      <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1 font-semibold">
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Sewa Laundry:</span>
+                          <span className="font-bold text-slate-900">{formatRupiah(bankLaundrySewa)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Setoran ke Pemilik:</span>
+                          <span className="font-bold text-slate-900">{formatRupiah(bankLaundrySetoran)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Biaya Operasional Bank:</span>
+                          <span className="font-bold text-slate-900">{formatRupiah(bankLaundryOpsExpense)}</span>
+                        </div>
+                        {bankLaundryPribadi > 0 && (
+                          <div className="flex justify-between text-purple-700 font-bold">
+                            <span>• Penarikan Pribadi (Prive):</span>
+                            <span>{formatRupiah(bankLaundryPribadi)}</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-slate-500 italic pt-0.5">
+                          Operasional: Listrik (317k), PAM (85k), Servis (375k), Pa Aris (120k), Smartlink (56k), Name tag (50k).
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -632,21 +709,46 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs sm:text-sm">
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <div className="flex justify-between items-center mb-0.5">
+                  <div className="space-y-3 pt-1 text-xs sm:text-sm">
+                    {/* Transfer Masuk */}
+                    <div className="bg-white/80 p-3 rounded-xl border border-purple-100 flex justify-between items-center">
+                      <div>
                         <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800">
-                          {bankReparasiIncomeTxs.length} Nota Terbayar
+                        <span className="text-base font-black text-emerald-700">{formatRupiah(bankReparasiIncome)}</span>
+                      </div>
+                      <span className="text-[11px] font-extrabold px-2 py-0.5 rounded bg-purple-100 text-purple-800">
+                        {bankReparasiIncomeTxs.length} Nota Terbayar
+                      </span>
+                    </div>
+
+                    {/* Pengeluaran Bank */}
+                    <div className="bg-white/90 p-3 rounded-xl border border-purple-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
+                          <span className="text-base font-black text-rose-700">{formatRupiah(bankReparasiExpense)}</span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                          {bankReparasiExpenseTxs.length} Transaksi
                         </span>
                       </div>
-                      <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(bankReparasiIncome)}</span>
-                      <span className="text-[10px] text-slate-500 block font-semibold">{bankReparasiIncomeTxs.length} nota terbayar via transfer</span>
-                    </div>
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
-                      <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(bankReparasiExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Gaji Bu Linna 800k + Sparepart 100k</span>
+
+                      <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1 font-semibold">
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Gaji Bu Linna:</span>
+                          <span className="font-bold text-slate-900">Rp 800.000</span>
+                        </div>
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Sparepart:</span>
+                          <span className="font-bold text-slate-900">Rp 100.000</span>
+                        </div>
+                        {personalExpenseRekReparasi > 0 && (
+                          <div className="flex justify-between text-purple-700 font-bold">
+                            <span>• Penarikan Pribadi (Prive):</span>
+                            <span>{formatRupiah(personalExpenseRekReparasi)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -670,48 +772,157 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs sm:text-sm">
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                      <div className="flex justify-between items-center mb-0.5">
-                        <span className="text-[11px] font-bold text-slate-600 block">Cash Masuk</span>
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
-                          {cashIncomeTxs.length} Nota Terbayar
+                  <div className="space-y-3 pt-1 text-xs sm:text-sm">
+                    {/* Cash Masuk */}
+                    <div className="bg-white/80 p-3 rounded-xl border border-emerald-100 flex justify-between items-center">
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-600 block">Cash Masuk Toko</span>
+                        <span className="text-base font-black text-emerald-700">{formatRupiah(cashIncome)}</span>
+                      </div>
+                      <span className="text-[11px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                        {cashIncomeTxs.length} Nota Terbayar
+                      </span>
+                    </div>
+
+                    {/* Belanja Toko (Cash) */}
+                    <div className="bg-white/90 p-3 rounded-xl border border-emerald-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Kasir (Cash)</span>
+                          <span className="text-base font-black text-rose-700">{formatRupiah(cashExpense)}</span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {cashExpenseTxs.length} Transaksi
                         </span>
                       </div>
-                      <span className="text-sm sm:text-base font-black text-emerald-700">{formatRupiah(cashIncome)}</span>
-                      <span className="text-[10px] text-slate-500 block font-semibold">{cashIncomeTxs.length} nota terbayar tunai di kasir</span>
-                    </div>
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                      <span className="text-[11px] font-bold text-slate-600 block">Belanja Toko (Cash)</span>
-                      <span className="text-sm sm:text-base font-black text-rose-700">{formatRupiah(cashExpense)}</span>
-                      <span className="text-[10px] text-slate-600 block font-semibold">Bensin, gas, harian</span>
+
+                      <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1 font-semibold">
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Gaji Yani (18 Okt):</span>
+                          <span className="font-bold text-slate-900">Rp 360.000</span>
+                        </div>
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Gaji Yani sebelumnya:</span>
+                          <span className="font-bold text-slate-900">Rp 600.000</span>
+                        </div>
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Bensin, Gas & Harian Toko:</span>
+                          <span className="font-bold text-slate-900">{formatRupiah(cashExpense - 960000 - personalExpenseCash)}</span>
+                        </div>
+                        {personalExpenseCash > 0 && (
+                          <div className="flex justify-between text-purple-700 font-bold">
+                            <span>• Penarikan Pribadi (Prive):</span>
+                            <span>{formatRupiah(personalExpenseCash)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
               </div>
 
+              {/* ========================================================= */}
+              {/* KARTU KHUSUS: PENGELUARAN PRIBADI PEMILIK (PRIVE) */}
+              {/* ========================================================= */}
+              <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/50 p-5 rounded-2xl border-2 border-purple-300 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-purple-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2.5 bg-purple-600 text-white rounded-xl shadow-xs">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-purple-950 text-base sm:text-lg flex items-center gap-2">
+                        <span>Pengeluaran Pribadi Pemilik (Prive Mami Lina)</span>
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
+                          {personalExpenseTxs.length} Transaksi
+                        </span>
+                      </h4>
+                      <p className="text-xs text-purple-800 font-medium">
+                        Penarikan dana keperluan pribadi Mami Lina dipisahkan dari biaya operasional toko agar laba toko tetap riil.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleOpenTransactionModal('pengeluaran', 'penarikan_investor')}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-2xs"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>+ Catat Prive Baru</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-500 uppercase block">Total Prive Pribadi</span>
+                    <span className="text-xl sm:text-2xl font-black text-purple-800 mt-0.5 block">{formatRupiah(totalPersonalExpense)}</span>
+                    <span className="text-[11px] text-purple-700 font-semibold block mt-0.5">{personalExpenseTxs.length} kali penarikan dana</span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-500 uppercase block">Dari Kasir Tunai Toko</span>
+                    <span className="text-lg sm:text-xl font-black text-slate-800 mt-0.5 block">{formatRupiah(personalExpenseCash)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">Uang cash kasir</span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-500 uppercase block">Dari Rek. Laundry</span>
+                    <span className="text-lg sm:text-xl font-black text-slate-800 mt-0.5 block">{formatRupiah(personalExpenseRekLaundry)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">Transfer Bank BCA</span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-500 uppercase block">Dari Rek. Reparasi</span>
+                    <span className="text-lg sm:text-xl font-black text-slate-800 mt-0.5 block">{formatRupiah(personalExpenseRekReparasi)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">Transfer Bank BCA</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-purple-100/50 rounded-xl border border-purple-200 text-xs text-purple-900 font-semibold flex items-center justify-between">
+                  <span>💡 <strong>Laba Operasional Bersih Toko (Sebelum Prive):</strong> {formatRupiah(operationalProfit)}</span>
+                  <span><strong>Sisa Saldo Kas & Bank Riil:</strong> {formatRupiah(netBalance)}</span>
+                </div>
+              </div>
+
               {/* Baris Akumulasi Global Ringkas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
                   <div>
-                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Seluruh Penerimaan (Semua)</span>
+                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Penerimaan (Semua)</span>
                     <span className="text-xl sm:text-2xl font-black text-emerald-700">{formatRupiah(totalIncome)}</span>
                     <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
-                      Total {allIncomeTxs.length} nota terbayar ({bankIncomeCount} transfer + {cashIncomeTxs.length} cash)
+                      {allIncomeTxs.length} nota ({bankIncomeCount} transfer + {cashIncomeTxs.length} cash)
                     </span>
                   </div>
                   <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
                     {allIncomeTxs.length} Nota Terbayar
                   </span>
                 </div>
+
                 <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
                   <div>
-                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Seluruh Pengeluaran (Semua)</span>
-                    <span className="text-xl sm:text-2xl font-black text-rose-700">{formatRupiah(totalExpense)}</span>
+                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Pengeluaran Toko Murni</span>
+                    <span className="text-xl sm:text-2xl font-black text-rose-700">{formatRupiah(totalOperationalExpense)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
+                      Sewa, gaji, listrik, gas, servis
+                    </span>
                   </div>
                   <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
-                    Bank + Toko
+                    Biaya Toko
+                  </span>
+                </div>
+
+                <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                  <div>
+                    <span className="text-xs font-bold text-slate-600 uppercase block">Sisa Kas & Saldo Bank Riil</span>
+                    <span className="text-xl sm:text-2xl font-black text-sky-800">{formatRupiah(netBalance)}</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
+                      Total kas masuk dikurangi seluruh pengeluaran
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
+                    Kas Bersih
                   </span>
                 </div>
               </div>
@@ -731,7 +942,7 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      {/* Omzet Modal (Pengelola) */}
+      {/* Omzet Modal */}
       <OmzetModal
         isOpen={isOmzetModalOpen}
         onClose={() => setIsOmzetModalOpen(false)}

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Transaction, UserProfile, UserRole } from '@/lib/types';
 import { formatRupiah, formatDateIndo, getCategoryLabel } from '@/lib/formatters';
-import { Lock, Trash2, Banknote, CreditCard, UserCheck, ShieldCheck } from 'lucide-react';
+import { Lock, Trash2, Banknote, CreditCard, UserCheck, ShieldCheck, User } from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -119,6 +119,11 @@ export default function TransactionTable({
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
                             ⭐ Setoran Target Investor
                           </span>
+                        ) : tx.sub_category === 'penarikan_investor' ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-purple-100 text-purple-950 border border-purple-400 shadow-2xs">
+                            <User className="w-3 h-3 mr-1 text-purple-700" />
+                            Pengeluaran Pribadi (Prive)
+                          </span>
                         ) : tx.sub_category ? (
                           <span className="font-bold text-slate-800 text-xs sm:text-sm">
                             {getCategoryLabel(tx.sub_category)}
@@ -149,17 +154,25 @@ export default function TransactionTable({
                     <td className="py-4 px-4 whitespace-nowrap">
                       <span
                         className={`font-bold px-2.5 py-1 rounded text-xs ${
-                          isIncome ? 'bg-emerald-100 text-emerald-900 border border-emerald-200' : 'bg-rose-100 text-rose-900 border border-rose-200'
+                          isIncome
+                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                            : tx.sub_category === 'penarikan_investor'
+                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                            : 'bg-rose-100 text-rose-900 border border-rose-200'
                         }`}
                       >
-                        {isIncome ? 'Penerimaan' : 'Pengeluaran'}
+                        {isIncome
+                          ? 'Penerimaan'
+                          : tx.sub_category === 'penarikan_investor'
+                          ? 'Prive (Pribadi)'
+                          : 'Pengeluaran'}
                       </span>
                     </td>
 
                     {/* Amount */}
                     <td
                       className={`py-4 px-4 text-right font-black text-base whitespace-nowrap ${
-                        isIncome ? 'text-emerald-700' : 'text-rose-700'
+                        isIncome ? 'text-emerald-700' : tx.sub_category === 'penarikan_investor' ? 'text-purple-700' : 'text-rose-700'
                       }`}
                     >
                       {isIncome ? '+' : '-'} {formatRupiah(tx.amount)}

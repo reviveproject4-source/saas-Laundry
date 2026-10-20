@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType, BankAccount, BusinessUnit, CostType, SubCategory, UserProfile } from '@/lib/types';
 import { createTransactionInSupabase } from '@/lib/transactions';
-import { X, CreditCard, ShoppingBag, Loader2, AlertCircle, Building2, Wrench, ShieldCheck, Target, Banknote } from 'lucide-react';
+import { X, CreditCard, ShoppingBag, Loader2, AlertCircle, Building2, Wrench, ShieldCheck, Target, Banknote, User } from 'lucide-react';
 import { formatRupiah } from '@/lib/formatters';
 
 interface TransactionModalProps {
@@ -16,6 +16,7 @@ interface TransactionModalProps {
 }
 
 type WalletChoice = 'rekening_laundry' | 'rekening_reparasi' | 'kasir_tunai';
+type ExpenseGoal = 'operasional' | 'pribadi' | 'setoran';
 
 export default function TransactionModal({
   isOpen,
@@ -43,7 +44,7 @@ export default function TransactionModal({
   const [reference, setReference] = useState<string>('');
 
   // Field khusus Pengeluaran
-  const [isSetoranInvestor, setIsSetoranInvestor] = useState<boolean>(defaultSubCategory === 'disetor_investor');
+  const [expenseGoal, setExpenseGoal] = useState<ExpenseGoal>('operasional');
   const [businessUnit, setBusinessUnit] = useState<BusinessUnit>('laundry');
   const [costType, setCostType] = useState<CostType>('variable_cost');
 
@@ -56,7 +57,13 @@ export default function TransactionModal({
   useEffect(() => {
     if (isOpen) {
       setType(defaultType);
-      setIsSetoranInvestor(defaultSubCategory === 'disetor_investor');
+      if (defaultSubCategory === 'disetor_investor') {
+        setExpenseGoal('setoran');
+      } else if (defaultSubCategory === 'penarikan_investor') {
+        setExpenseGoal('pribadi');
+      } else {
+        setExpenseGoal('operasional');
+      }
       setWallet('rekening_laundry');
       setRawAmount('');
       setNotes('');
@@ -118,14 +125,15 @@ export default function TransactionModal({
 
     const isCash = wallet === 'kasir_tunai';
 
-    // Transfer wajib isi referensi/bukti transfer
+    // Transfer penerimaan wajib isi referensi/bukti transfer
     if (type === 'penerimaan' && !isCash && !reference.trim()) {
       setErrorMessage('Harap isi referensi / bukti pembayaran transfer bank.');
       return;
     }
 
-    if (type === 'pengeluaran' && !isSetoranInvestor && !notes.trim()) {
-      setErrorMessage('Harap isi keterangan pengeluaran operasional.');
+    // Biaya operasional wajib isi keterangan
+    if (type === 'pengeluaran' && expenseGoal === 'operasional' && !notes.trim()) {
+      setErrorMessage('Harap isi keterangan pengeluaran operasional toko.');
       return;
     }
 
@@ -137,21 +145,24 @@ export default function TransactionModal({
           ? reference.trim()
             ? reference.trim() + (notes.trim() ? ` - ${notes.trim()}` : '')
             : notes.trim()
+          : expenseGoal === 'setoran'
+          ? (notes.trim() || 'Setoran Target Bulanan ke Investor')
+          : expenseGoal === 'pribadi'
+          ? (notes.trim() || 'Pengeluaran Pribadi Pemilik (Prive)')
           : notes.trim();
 
-      const isSetoran = type === 'pengeluaran' && isSetoranInvestor;
       const isReparasi = wallet === 'rekening_reparasi' || (isCash && businessUnit === 'reparasi');
 
-      const computedSubCategory =
-        type === 'penerimaan'
-          ? isReparasi
-            ? 'reparasi'
-            : 'laundry'
-          : isSetoran
-          ? 'disetor_investor'
-          : 'operasional';
-
-      const defaultSetoranNote = isSetoran ? 'Setoran Target Bulanan ke Investor' : null;
+      let computedSubCategory: SubCategory = 'operasional';
+      if (type === 'penerimaan') {
+        computedSubCategory = isReparasi ? 'reparasi' : 'laundry';
+      } else if (expenseGoal === 'setoran') {
+        computedSubCategory = 'disetor_investor';
+      } else if (expenseGoal === 'pribadi') {
+        computedSubCategory = 'penarikan_investor';
+      } else {
+        computedSubCategory = 'operasional';
+      }
 
       const payload = {
         tenant_id: userProfile.tenant_id,
@@ -160,13 +171,13 @@ export default function TransactionModal({
         creator_name: userProfile.full_name || 'Pemilik Trio R',
         transaction_date: date,
         type: type,
-        sub_category: computedSubCategory as any,
+        sub_category: computedSubCategory,
         amount: parsedAmount,
-        notes: (type === 'penerimaan' ? combinedNotes : notes.trim()) || defaultSetoranNote,
+        notes: combinedNotes,
         payment_method: (isCash ? 'cash' : 'transfer') as 'transfer' | 'cash',
         bank_account: (isCash ? null : (wallet === 'rekening_reparasi' ? 'rekening_reparasi' : 'rekening_laundry')) as BankAccount | null,
-        business_unit: (isSetoran ? 'laundry' : (isReparasi ? 'reparasi' : 'laundry')) as BusinessUnit,
-        cost_type: type === 'pengeluaran' ? (isSetoran ? null : costType) : null,
+        business_unit: (expenseGoal === 'setoran' ? 'laundry' : (isReparasi ? 'reparasi' : 'laundry')) as BusinessUnit,
+        cost_type: (type === 'pengeluaran' && expenseGoal === 'operasional') ? costType : null,
       };
 
       const res = await createTransactionInSupabase(payload);
@@ -201,7 +212,13 @@ export default function TransactionModal({
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
           <div>
             <h3 className="font-black text-slate-900 text-xl sm:text-2xl">
-              {type === 'penerimaan' ? 'Input Penerimaan Toko' : 'Input Pengeluaran'}
+              {type === 'penerimaan'
+                ? 'Input Penerimaan Toko'
+                : expenseGoal === 'pribadi'
+                ? 'Input Pengeluaran Pribadi (Prive)'
+                : expenseGoal === 'setoran'
+                ? 'Input Setoran Target Bulanan'
+                : 'Input Pengeluaran Toko'}
             </h3>
             <p className="text-sm font-semibold text-slate-600 mt-1">
               Pencatatan keuangan resmi (Peran: <span className="font-black text-amber-800 uppercase">Pemilik</span>)
@@ -252,7 +269,7 @@ export default function TransactionModal({
                 }`}
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>Pengeluaran (Biaya)</span>
+                <span>Pengeluaran (Biaya/Prive)</span>
               </button>
             </div>
           </div>
@@ -386,51 +403,83 @@ export default function TransactionModal({
           {/* ===================== MODE PENGELUARAN ===================== */}
           {type === 'pengeluaran' && (
             <>
-              {/* Pilihan: Biaya Operasional vs Setoran Target ke Investor */}
+              {/* Pilihan 3 Tujuan Pengeluaran: Operasional Toko vs Pengeluaran Pribadi vs Setoran Target */}
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">
                   Tujuan Pengeluaran
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setIsSetoranInvestor(false)}
-                    className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                      !isSetoranInvestor
+                    onClick={() => setExpenseGoal('operasional')}
+                    className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                      expenseGoal === 'operasional'
                         ? 'border-rose-600 bg-rose-50 text-rose-950 ring-2 ring-rose-500'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-2 font-black text-sm">
-                      <ShoppingBag className="w-4 h-4 text-rose-600" />
+                    <div className="flex items-center space-x-1.5 font-black text-xs sm:text-sm">
+                      <ShoppingBag className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>Biaya Operasional</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-600 mt-1.5">
-                      Listrik, sewa, gaji, gas, servis
+                    <span className="text-[11px] font-semibold text-slate-600 mt-1">
+                      Sewa, listrik, gaji, servis
                     </span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setIsSetoranInvestor(true)}
-                    className={`p-3.5 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                      isSetoranInvestor
+                    onClick={() => setExpenseGoal('pribadi')}
+                    className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                      expenseGoal === 'pribadi'
+                        ? 'border-purple-600 bg-purple-50 text-purple-950 ring-2 ring-purple-500'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1.5 font-black text-xs sm:text-sm">
+                      <User className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Pengeluaran Pribadi</span>
+                    </div>
+                    <span className="text-[11px] font-semibold text-purple-800 mt-1">
+                      Prive Mami Lina (Cash/TF)
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGoal('setoran')}
+                    className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                      expenseGoal === 'setoran'
                         ? 'border-amber-500 bg-amber-50 text-amber-950 ring-2 ring-amber-500'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-2 font-black text-sm">
-                      <Target className="w-4 h-4 text-amber-600" />
+                    <div className="flex items-center space-x-1.5 font-black text-xs sm:text-sm">
+                      <Target className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>Setoran Target</span>
                     </div>
-                    <span className="text-xs text-amber-800 font-bold mt-1.5">
+                    <span className="text-[11px] font-bold text-amber-800 mt-1">
                       Target Rp 10 Juta / Bln
                     </span>
                   </button>
                 </div>
               </div>
 
-              {isSetoranInvestor ? (
+              {/* Penjelasan jika PRIBADI (Prive) */}
+              {expenseGoal === 'pribadi' && (
+                <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-950 text-xs sm:text-sm space-y-1">
+                  <div className="font-extrabold flex items-center space-x-1.5 text-purple-900">
+                    <User className="w-4 h-4 text-purple-600" />
+                    <span>Pencatatan Prive / Keperluan Pribadi Pemilik (Mami Lina)</span>
+                  </div>
+                  <p className="text-xs text-purple-800 leading-relaxed font-semibold">
+                    Dana yang diambil untuk kebutuhan pribadi Mami Lina (baik cash toko atau transfer bank) akan dicatat terpisah dan <strong>tidak membebani biaya operasional toko</strong>, sehingga laba bersih toko tetap riil dan presisi.
+                  </p>
+                </div>
+              )}
+
+              {/* Penjelasan jika SETORAN */}
+              {expenseGoal === 'setoran' && (
                 <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 text-xs sm:text-sm space-y-1">
                   <div className="font-extrabold flex items-center space-x-1.5 text-amber-900">
                     <Target className="w-4 h-4 text-amber-600" />
@@ -440,12 +489,14 @@ export default function TransactionModal({
                     Pencatatan ini akan langsung dihitung sebagai realisasi <strong>Target Setoran Investor (Rp 10.000.000 / Bulan)</strong> dan otomatis mengurangi sisa target yang harus dipenuhi.
                   </p>
                 </div>
-              ) : (
+              )}
+
+              {/* Pilihan Dompet Pembayar (Tersedia untuk Operasional dan Pengeluaran Pribadi) */}
+              {expenseGoal !== 'setoran' && (
                 <>
-                  {/* Pilihan 3 Dompet Pembayar */}
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                      Sumber Dana (Dompet yang Membayar)
+                      Sumber Dana (Dompet yang Membayar / Ditarik)
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <button
@@ -461,7 +512,7 @@ export default function TransactionModal({
                           <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
                           <span>Rek. Laundry</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-600 mt-1">Sewa, PAM, Listrik</span>
+                        <span className="text-[11px] font-semibold text-slate-600 mt-1">Bank BCA Laundry</span>
                       </button>
 
                       <button
@@ -477,7 +528,7 @@ export default function TransactionModal({
                           <Wrench className="w-4 h-4 text-purple-600 shrink-0" />
                           <span>Rek. Reparasi</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-600 mt-1">Gaji, Sparepart</span>
+                        <span className="text-[11px] font-semibold text-slate-600 mt-1">Bank BCA Reparasi</span>
                       </button>
 
                       <button
@@ -493,7 +544,7 @@ export default function TransactionModal({
                           <Banknote className="w-4 h-4 text-emerald-600 shrink-0" />
                           <span>Kasir Tunai</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-600 mt-1">Bensin, Gas, Toko</span>
+                        <span className="text-[11px] font-semibold text-slate-600 mt-1">Uang Cash Toko</span>
                       </button>
                     </div>
                   </div>
@@ -501,7 +552,9 @@ export default function TransactionModal({
                   {/* Jika Kasir Tunai, pilih unit */}
                   {isCash && (
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Beban Unit Usaha</label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                        {expenseGoal === 'pribadi' ? 'Diambil Dari Kasir Unit' : 'Beban Unit Usaha'}
+                      </label>
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
@@ -531,37 +584,39 @@ export default function TransactionModal({
                     </div>
                   )}
 
-                  {/* Cost Type */}
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Jenis Biaya (Cost Type)</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setCostType('fixed_cost')}
-                        className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                          costType === 'fixed_cost'
-                            ? 'border-sky-600 bg-sky-50 text-sky-950 ring-2 ring-sky-500'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className="font-black text-sm">Fixed Cost</span>
-                        <span className="text-xs text-slate-600 font-semibold mt-1">Biaya Tetap (Sewa, Gaji Pokok)</span>
-                      </button>
+                  {/* Cost Type hanya untuk Biaya Operasional Toko */}
+                  {expenseGoal === 'operasional' && (
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Jenis Biaya (Cost Type)</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCostType('fixed_cost')}
+                          className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                            costType === 'fixed_cost'
+                              ? 'border-sky-600 bg-sky-50 text-sky-950 ring-2 ring-sky-500'
+                              : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-black text-sm">Fixed Cost</span>
+                          <span className="text-xs text-slate-600 font-semibold mt-1">Biaya Tetap (Sewa, Gaji Pokok)</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setCostType('variable_cost')}
-                        className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                          costType === 'variable_cost'
-                            ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className="font-black text-sm">Variable Cost</span>
-                        <span className="text-xs text-slate-600 font-semibold mt-1">Biaya Variabel (Gas, Bensin, Part)</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setCostType('variable_cost')}
+                          className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                            costType === 'variable_cost'
+                              ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500'
+                              : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-black text-sm">Variable Cost</span>
+                          <span className="text-xs text-slate-600 font-semibold mt-1">Biaya Variabel (Gas, Bensin, Part)</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
             </>
@@ -591,20 +646,28 @@ export default function TransactionModal({
           {/* Catatan / Keterangan Pengeluaran */}
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
-              {type === 'pengeluaran' ? 'Keterangan Pengeluaran' : 'Catatan Tambahan (Opsional)'}
+              {type === 'pengeluaran'
+                ? expenseGoal === 'pribadi'
+                  ? 'Keperluan Pribadi (Opsional)'
+                  : expenseGoal === 'setoran'
+                  ? 'Catatan Setoran Target'
+                  : 'Keterangan Pengeluaran Operasional'
+                : 'Catatan Tambahan (Opsional)'}
             </label>
             <input
               type="text"
               placeholder={
                 type === 'pengeluaran'
-                  ? isSetoranInvestor
+                  ? expenseGoal === 'pribadi'
+                    ? 'Contoh: Kebutuhan pribadi Mami Lina / Belanja bulanan'
+                    : expenseGoal === 'setoran'
                     ? 'Contoh: Setoran tahap 1 ke rekening pribadi pemilik'
                     : 'Contoh: Pembelian Gas LPG 3 tabung'
                   : 'Catatan tambahan jika ada...'
               }
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              required={type === 'pengeluaran' && !isSetoranInvestor}
+              required={type === 'pengeluaran' && expenseGoal === 'operasional'}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
           </div>
@@ -616,9 +679,11 @@ export default function TransactionModal({
               Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pemilik</strong> (
               {type === 'penerimaan'
                 ? isCash ? 'Kasir Tunai Cash' : 'Mutasi Transfer Bank'
-                : isSetoranInvestor
+                : expenseGoal === 'pribadi'
+                ? 'Pengeluaran Pribadi (Prive Pemilik)'
+                : expenseGoal === 'setoran'
                 ? 'Realisasi Setoran Target'
-                : 'Pengeluaran/Biaya Operasional'}
+                : 'Biaya Operasional Toko'}
               ).
             </span>
           </div>
@@ -630,7 +695,9 @@ export default function TransactionModal({
             className={`w-full flex items-center justify-center space-x-2 py-3.5 text-white font-bold text-sm sm:text-base rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50 ${
               type === 'penerimaan'
                 ? 'bg-emerald-600 hover:bg-emerald-700'
-                : isSetoranInvestor
+                : expenseGoal === 'pribadi'
+                ? 'bg-purple-600 hover:bg-purple-700'
+                : expenseGoal === 'setoran'
                 ? 'bg-amber-600 hover:bg-amber-700 text-slate-950 font-black'
                 : 'bg-rose-600 hover:bg-rose-700'
             }`}
@@ -641,9 +708,11 @@ export default function TransactionModal({
                 ? 'Menyimpan Transaksi...'
                 : type === 'penerimaan'
                 ? 'Simpan Penerimaan'
-                : isSetoranInvestor
+                : expenseGoal === 'pribadi'
+                ? 'Simpan Pengeluaran Pribadi'
+                : expenseGoal === 'setoran'
                 ? 'Simpan Setoran Target'
-                : 'Simpan Pengeluaran'}
+                : 'Simpan Biaya Operasional'}
             </span>
           </button>
         </form>
