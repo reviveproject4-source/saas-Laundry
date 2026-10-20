@@ -668,10 +668,12 @@ export default function DashboardPage() {
                           <span>• Sewa Laundry:</span>
                           <span className="font-bold text-slate-900">{formatRupiah(bankLaundrySewa)}</span>
                         </div>
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Setoran ke Pemilik:</span>
-                          <span className="font-bold text-slate-900">{formatRupiah(bankLaundrySetoran)}</span>
-                        </div>
+                        {bankLaundrySetoran > 0 && (
+                          <div className="flex justify-between text-slate-700">
+                            <span>• Setoran ke Pemilik:</span>
+                            <span className="font-bold text-slate-900">{formatRupiah(bankLaundrySetoran)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-slate-700">
                           <span>• Biaya Operasional Bank:</span>
                           <span className="font-bold text-slate-900">{formatRupiah(bankLaundryOpsExpense)}</span>
@@ -683,7 +685,7 @@ export default function DashboardPage() {
                           </div>
                         )}
                         <p className="text-[10px] text-slate-500 italic pt-0.5">
-                          Operasional: Listrik (317k), PAM (85k), Servis (375k), Pa Aris (120k), Smartlink (56k), Name tag (50k).
+                          Operasional: Listrik (317k), PAM (85k), Servis (375k), Smartlink (56k), Name tag (50k).
                         </p>
                       </div>
                     </div>
@@ -739,8 +741,12 @@ export default function DashboardPage() {
                           <span className="font-bold text-slate-900">Rp 800.000</span>
                         </div>
                         <div className="flex justify-between text-slate-700">
-                          <span>• Sparepart:</span>
-                          <span className="font-bold text-slate-900">Rp 100.000</span>
+                          <span>• Pa Aris:</span>
+                          <span className="font-bold text-slate-900">Rp 120.000</span>
+                        </div>
+                        <div className="flex justify-between text-slate-700">
+                          <span>• Sparepart & Bahan Reparasi:</span>
+                          <span className="font-bold text-slate-900">Rp 205.000</span>
                         </div>
                         {personalExpenseRekReparasi > 0 && (
                           <div className="flex justify-between text-purple-700 font-bold">
@@ -748,6 +754,9 @@ export default function DashboardPage() {
                             <span>{formatRupiah(personalExpenseRekReparasi)}</span>
                           </div>
                         )}
+                        <p className="text-[10px] text-slate-500 italic pt-0.5">
+                          Sparepart: Kepala resleting (105k), Kaki tas (36k), Webbing (32k), Kunci sodok (32k).
+                        </p>
                       </div>
                     </div>
                   </div>
