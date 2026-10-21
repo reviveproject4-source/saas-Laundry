@@ -2,7 +2,14 @@
 
 import React from 'react';
 import { Transaction, UserProfile, UserRole } from '@/lib/types';
-import { formatRupiah, formatDateIndo, getCategoryLabel } from '@/lib/formatters';
+import { 
+  formatRupiah, 
+  formatDateIndo, 
+  getCategoryLabel, 
+  parsePersonalCategory, 
+  getPersonalCategoryLabel, 
+  getPersonalCategoryIcon 
+} from '@/lib/formatters';
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 
@@ -83,8 +90,14 @@ export default function TransactionTable({
                 const isSetoran = tx.sub_category === 'disetor_investor';
                 const isQRISBelanja = isPriveTarik && (
                   (tx.notes || '').toLowerCase().includes('belanja') ||
-                  (tx.notes || '').toLowerCase().includes('qris')
+                  (tx.notes || '').toLowerCase().includes('qris') ||
+                  (tx.notes || '').toLowerCase().includes('makanan') ||
+                  (tx.notes || '').toLowerCase().includes('listrik') ||
+                  (tx.notes || '').toLowerCase().includes('donasi') ||
+                  (tx.notes || '').toLowerCase().includes('bensin')
                 );
+                const isAnyPersonal = isQRISBelanja || isBelanjaPribadi;
+                const personalCat = isAnyPersonal ? parsePersonalCategory(tx.notes, tx.sub_category) : null;
 
                 return (
                   <tr key={tx.id} className="hover:bg-slate-50 transition">
@@ -140,20 +153,16 @@ export default function TransactionTable({
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
                             ⭐ Setoran Target Investor
                           </span>
-                        ) : isQRISBelanja ? (
+                        ) : isAnyPersonal ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-purple-100 text-purple-950 border border-purple-400 shadow-2xs">
-                            <CreditCard className="w-3.5 h-3.5 mr-1 text-purple-700" />
-                            Belanja Pribadi (QRIS / Toko)
+                            <span className="mr-1">{getPersonalCategoryIcon(personalCat!)}</span>
+                            <span>{getPersonalCategoryLabel(personalCat!)}</span>
+                            {isQRISBelanja && <span className="ml-1 text-[10px] text-purple-700 font-semibold">(QRIS)</span>}
                           </span>
                         ) : isPriveTarik ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
                             <ArrowDownLeft className="w-3.5 h-3.5 mr-1 text-amber-700" />
                             Tarik Kas Toko (Debit)
-                          </span>
-                        ) : isBelanjaPribadi ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-purple-100 text-purple-950 border border-purple-400 shadow-2xs">
-                            <ShoppingCart className="w-3.5 h-3.5 mr-1 text-purple-700" />
-                            Belanja Pribadi (Kredit)
                           </span>
                         ) : tx.sub_category ? (
                           <span className="font-bold text-slate-800 text-xs sm:text-sm">

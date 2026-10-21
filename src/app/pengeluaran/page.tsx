@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import TransactionTable from '@/components/TransactionTable';
 import TransactionModal from '@/components/TransactionModal';
+import PersonalExpenseChart from '@/components/PersonalExpenseChart';
 import { Transaction, SubCategory, UserProfile, TenantProfile } from '@/lib/types';
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions, deleteTransactionFromSupabase } from '@/lib/transactions';
@@ -242,6 +243,9 @@ export default function PengeluaranPage() {
             </div>
 
           </div>
+
+          {/* Grafik Komposisi Pengeluaran Pribadi */}
+          <PersonalExpenseChart transactions={allExpenseTxs} />
 
           {/* Expense Table */}
           <TransactionTable

@@ -40,6 +40,29 @@ export type SubCategory =
   | 'penarikan_investor'
   | 'pengeluaran_pribadi';
 
+export type PersonalCategory =
+  | 'bahan_makanan'
+  | 'makanan'
+  | 'listrik_kuota'
+  | 'donasi'
+  | 'belanja'
+  | 'bensin';
+
+export interface PersonalCategoryMeta {
+  id: PersonalCategory;
+  label: string;
+  icon: string;
+}
+
+export const PERSONAL_CATEGORIES: PersonalCategoryMeta[] = [
+  { id: 'bahan_makanan', label: 'Bahan Makanan', icon: '🥬' },
+  { id: 'makanan', label: 'Makanan', icon: '🍲' },
+  { id: 'listrik_kuota', label: 'Listrik / Kuota', icon: '⚡' },
+  { id: 'donasi', label: 'Donasi', icon: '🤲' },
+  { id: 'belanja', label: 'Belanja', icon: '🛍️' },
+  { id: 'bensin', label: 'Bensin', icon: '⛽' },
+];
+
 export interface Transaction {
   id: string; // UUID from database
   tenant_id: string;
@@ -48,26 +71,25 @@ export interface Transaction {
   creator_name: string;
   transaction_date: string; // YYYY-MM-DD
   type: TransactionType;
-  sub_category?: SubCategory | string;
-  payment_method: PaymentMethod;
+  sub_category: SubCategory;
   amount: number;
-  notes?: string | null;
-  business_unit?: BusinessUnit | null;
+  notes?: string;
+  payment_method: PaymentMethod;
   bank_account?: BankAccount | null;
+  business_unit?: BusinessUnit;
   cost_type?: CostType | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface DailyOmzet {
-  id: string; // UUID from database
+  id: string;
   tenant_id: string;
   date: string; // YYYY-MM-DD
   omzet_laundry: number;
   omzet_reparasi: number;
-  notes?: string | null;
+  notes?: string;
   created_by_user_id: string;
   creator_name: string;
   created_at?: string;
-  updated_at?: string;
 }

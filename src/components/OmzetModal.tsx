@@ -133,9 +133,9 @@ export default function OmzetModal({
         date: date,
         omzet_laundry: numLaundry,
         omzet_reparasi: numReparasi,
-        notes: notes.trim() || null,
+        notes: notes.trim() || undefined,
         created_by_user_id: userProfile.id,
-        creator_name: userProfile.full_name || 'Pemilik Trio R',
+        creator_name: userProfile.full_name || 'Pemilik',
       });
 
       if (res.error || !res.data) {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
+import PersonalExpenseChart from '@/components/PersonalExpenseChart';
 import { Transaction, DailyOmzet, UserProfile, TenantProfile } from '@/lib/types';
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions } from '@/lib/transactions';
@@ -769,6 +770,9 @@ export default function RingkasanPencatatanPage() {
                 </p>
               </div>
             </div>
+
+            {/* Grafik Komposisi Belanja Pribadi */}
+            <PersonalExpenseChart transactions={[...filteredPriveDebit, ...filteredPersonalCredit]} />
 
             {/* Table Kelompok 4 */}
             <div className="bg-white rounded-2xl border border-purple-200 shadow-sm overflow-hidden">
