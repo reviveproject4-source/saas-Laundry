@@ -27,7 +27,8 @@ export function getCategoryLabel(subCategory?: string | null): string {
     detergen: 'Pembelian Detergen/Sabun',
     sewa_toko: 'Pembayaran Sewa Toko',
     disetor_investor: 'Dana Disetor ke Investor',
-    penarikan_investor: 'Penarikan Uang oleh Investor (Prive)',
+    penarikan_investor: 'Ambil Dana Usaha (Debit Pribadi)',
+    pengeluaran_pribadi: 'Pengeluaran Pribadi (Kredit)',
   };
   return map[subCategory] || subCategory;
 }

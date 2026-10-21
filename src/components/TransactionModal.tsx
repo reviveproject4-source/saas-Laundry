@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType, BankAccount, BusinessUnit, CostType, SubCategory, UserProfile } from '@/lib/types';
 import { createTransactionInSupabase } from '@/lib/transactions';
-import { X, CreditCard, ShoppingBag, Loader2, AlertCircle, Building2, Wrench, ShieldCheck, Target, Banknote, User } from 'lucide-react';
+import { X, CreditCard, ShoppingBag, Loader2, AlertCircle, Building2, Wrench, ShieldCheck, Target, Banknote, User, ArrowDownLeft, ShoppingCart } from 'lucide-react';
 import { formatRupiah } from '@/lib/formatters';
 
 interface TransactionModalProps {
@@ -16,7 +16,7 @@ interface TransactionModalProps {
 }
 
 type WalletChoice = 'rekening_laundry' | 'rekening_reparasi' | 'kasir_tunai';
-type ExpenseGoal = 'operasional' | 'pribadi' | 'setoran';
+type ExpenseGoal = 'operasional' | 'ambil_usaha' | 'belanja_pribadi' | 'setoran';
 
 export default function TransactionModal({
   isOpen,
@@ -60,7 +60,9 @@ export default function TransactionModal({
       if (defaultSubCategory === 'disetor_investor') {
         setExpenseGoal('setoran');
       } else if (defaultSubCategory === 'penarikan_investor') {
-        setExpenseGoal('pribadi');
+        setExpenseGoal('ambil_usaha');
+      } else if (defaultSubCategory === 'pengeluaran_pribadi') {
+        setExpenseGoal('belanja_pribadi');
       } else {
         setExpenseGoal('operasional');
       }
@@ -137,6 +139,12 @@ export default function TransactionModal({
       return;
     }
 
+    // Belanja pribadi wajib isi keterangan
+    if (type === 'pengeluaran' && expenseGoal === 'belanja_pribadi' && !notes.trim()) {
+      setErrorMessage('Harap isi keterangan keperluan belanja pribadi.');
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -147,21 +155,39 @@ export default function TransactionModal({
             : notes.trim()
           : expenseGoal === 'setoran'
           ? (notes.trim() || 'Setoran Target Bulanan ke Investor')
-          : expenseGoal === 'pribadi'
-          ? (notes.trim() || 'Pengeluaran Pribadi Pemilik (Prive)')
+          : expenseGoal === 'ambil_usaha'
+          ? (notes.trim() || 'Ambil Dana Usaha tuk Pribadi (Debit)')
+          : expenseGoal === 'belanja_pribadi'
+          ? notes.trim()
           : notes.trim();
 
       const isReparasi = wallet === 'rekening_reparasi' || (isCash && businessUnit === 'reparasi');
 
       let computedSubCategory: SubCategory = 'operasional';
+      let paymentMethod: 'cash' | 'transfer' = isCash ? 'cash' : 'transfer';
+      let bankAccount: BankAccount | null = isCash ? null : (wallet === 'rekening_reparasi' ? 'rekening_reparasi' : 'rekening_laundry');
+      let targetBusinessUnit: BusinessUnit = isReparasi ? 'reparasi' : 'laundry';
+      let finalCostType: CostType | null = null;
+
       if (type === 'penerimaan') {
         computedSubCategory = isReparasi ? 'reparasi' : 'laundry';
       } else if (expenseGoal === 'setoran') {
         computedSubCategory = 'disetor_investor';
-      } else if (expenseGoal === 'pribadi') {
+        targetBusinessUnit = 'laundry';
+      } else if (expenseGoal === 'ambil_usaha') {
+        // Ambil Dana Usaha tuk Pribadi (Debit Pribadi)
         computedSubCategory = 'penarikan_investor';
+        // bankAccount & paymentMethod mencatat dari mana uang usaha ditarik
+      } else if (expenseGoal === 'belanja_pribadi') {
+        // Pengeluaran Keperluan Pribadi (Kredit Pribadi)
+        computedSubCategory = 'pengeluaran_pribadi';
+        paymentMethod = 'cash';
+        bankAccount = null; // Tidak memotong rekening bank toko!
+        targetBusinessUnit = 'pribadi'; // Murni pengeluaran pribadi Mami Lina!
       } else {
+        // Biaya Operasional Toko
         computedSubCategory = 'operasional';
+        finalCostType = costType;
       }
 
       const payload = {
@@ -174,10 +200,10 @@ export default function TransactionModal({
         sub_category: computedSubCategory,
         amount: parsedAmount,
         notes: combinedNotes,
-        payment_method: (isCash ? 'cash' : 'transfer') as 'transfer' | 'cash',
-        bank_account: (isCash ? null : (wallet === 'rekening_reparasi' ? 'rekening_reparasi' : 'rekening_laundry')) as BankAccount | null,
-        business_unit: (expenseGoal === 'setoran' ? 'laundry' : (isReparasi ? 'reparasi' : 'laundry')) as BusinessUnit,
-        cost_type: (type === 'pengeluaran' && expenseGoal === 'operasional') ? costType : null,
+        payment_method: paymentMethod,
+        bank_account: bankAccount,
+        business_unit: targetBusinessUnit,
+        cost_type: finalCostType,
       };
 
       const res = await createTransactionInSupabase(payload);
@@ -214,14 +240,16 @@ export default function TransactionModal({
             <h3 className="font-black text-slate-900 text-xl sm:text-2xl">
               {type === 'penerimaan'
                 ? 'Input Penerimaan Toko'
-                : expenseGoal === 'pribadi'
-                ? 'Input Pengeluaran Pribadi (Prive)'
+                : expenseGoal === 'ambil_usaha'
+                ? 'Ambil Dana Usaha (Debit Pribadi)'
+                : expenseGoal === 'belanja_pribadi'
+                ? 'Input Pengeluaran Pribadi (Kredit)'
                 : expenseGoal === 'setoran'
                 ? 'Input Setoran Target Bulanan'
-                : 'Input Pengeluaran Toko'}
+                : 'Input Biaya Operasional Toko'}
             </h3>
             <p className="text-sm font-semibold text-slate-600 mt-1">
-              Pencatatan keuangan resmi (Peran: <span className="font-black text-amber-800 uppercase">Pemilik</span>)
+              Pencatatan keuangan (Peran: <span className="font-black text-amber-800 uppercase">Pemilik Mami Lina</span>)
             </p>
           </div>
           <button
@@ -245,31 +273,31 @@ export default function TransactionModal({
           
           {/* Toggle Jenis: Penerimaan vs Pengeluaran */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">Jenis Pencatatan</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Kelompok Pencatatan</label>
             <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl">
               <button
                 type="button"
                 onClick={() => setType('penerimaan')}
-                className={`py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center space-x-2 ${
+                className={`py-2.5 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center space-x-1.5 ${
                   type === 'penerimaan'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <CreditCard className="w-4 h-4" />
-                <span>Penerimaan (Uang Masuk)</span>
+                <span>Penerimaan Usaha</span>
               </button>
               <button
                 type="button"
                 onClick={() => setType('pengeluaran')}
-                className={`py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center space-x-2 ${
+                className={`py-2.5 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center space-x-1.5 ${
                   type === 'pengeluaran'
                     ? 'bg-rose-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>Pengeluaran (Biaya/Prive)</span>
+                <span>Pengeluaran / Pribadi</span>
               </button>
             </div>
           </div>
@@ -400,15 +428,17 @@ export default function TransactionModal({
             </>
           )}
 
-          {/* ===================== MODE PENGELUARAN ===================== */}
+          {/* ===================== MODE PENGELUARAN / PRIBADI ===================== */}
           {type === 'pengeluaran' && (
             <>
-              {/* Pilihan 3 Tujuan Pengeluaran: Operasional Toko vs Pengeluaran Pribadi vs Setoran Target */}
+              {/* Pilihan 3 Menu Utama Pengeluaran */}
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                  Tujuan Pengeluaran
+                  Pilih Jenis Aliran Dana
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  
+                  {/* Pilihan 1: Biaya Usaha Toko */}
                   <button
                     type="button"
                     onClick={() => setExpenseGoal('operasional')}
@@ -420,83 +450,99 @@ export default function TransactionModal({
                   >
                     <div className="flex items-center space-x-1.5 font-black text-xs sm:text-sm">
                       <ShoppingBag className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>Biaya Operasional</span>
+                      <span>Biaya Toko</span>
                     </div>
                     <span className="text-[11px] font-semibold text-slate-600 mt-1">
-                      Sewa, listrik, gaji, servis
+                      Sewa, gaji, listrik, servis
                     </span>
                   </button>
 
+                  {/* Pilihan 2: Ambil Dana Usaha tuk Pribadi (Debit) */}
                   <button
                     type="button"
-                    onClick={() => setExpenseGoal('pribadi')}
+                    onClick={() => setExpenseGoal('ambil_usaha')}
                     className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                      expenseGoal === 'pribadi'
+                      expenseGoal === 'ambil_usaha'
+                        ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1.5 font-black text-xs sm:text-sm">
+                      <ArrowDownLeft className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Ambil Dana Usaha</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-amber-800 mt-1">
+                      Tarik ke Pribadi (Debit)
+                    </span>
+                  </button>
+
+                  {/* Pilihan 3: Belanja / Keperluan Pribadi (Kredit) */}
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGoal('belanja_pribadi')}
+                    className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                      expenseGoal === 'belanja_pribadi'
                         ? 'border-purple-600 bg-purple-50 text-purple-950 ring-2 ring-purple-500'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center space-x-1.5 font-black text-xs sm:text-sm">
-                      <User className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>Pengeluaran Pribadi</span>
+                      <ShoppingCart className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Belanja Pribadi</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-purple-800 mt-1">
-                      Prive Mami Lina (Cash/TF)
+                    <span className="text-[11px] font-bold text-purple-800 mt-1">
+                      Pengeluaran Pribadi (Kredit)
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setExpenseGoal('setoran')}
-                    className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
-                      expenseGoal === 'setoran'
-                        ? 'border-amber-500 bg-amber-50 text-amber-950 ring-2 ring-amber-500'
-                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-1.5 font-black text-xs sm:text-sm">
-                      <Target className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>Setoran Target</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-amber-800 mt-1">
-                      Target Rp 10 Juta / Bln
-                    </span>
-                  </button>
                 </div>
               </div>
 
-              {/* Penjelasan jika PRIBADI (Prive) */}
-              {expenseGoal === 'pribadi' && (
-                <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-950 text-xs sm:text-sm space-y-1">
-                  <div className="font-extrabold flex items-center space-x-1.5 text-purple-900">
-                    <User className="w-4 h-4 text-purple-600" />
-                    <span>Pencatatan Prive / Keperluan Pribadi Pemilik (Mami Lina)</span>
+              {/* BANNER PENJELAS: BIAYA OPERASIONAL TOKO */}
+              {expenseGoal === 'operasional' && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 text-xs space-y-1">
+                  <div className="font-extrabold flex items-center space-x-1.5 text-rose-900">
+                    <ShoppingBag className="w-4 h-4 text-rose-600" />
+                    <span>Biaya Operasional Toko (Pengurang Margin Usaha)</span>
                   </div>
-                  <p className="text-xs text-purple-800 leading-relaxed font-semibold">
-                    Dana yang diambil untuk kebutuhan pribadi Mami Lina (baik cash toko atau transfer bank) akan dicatat terpisah dan <strong>tidak membebani biaya operasional toko</strong>, sehingga laba bersih toko tetap riil dan presisi.
+                  <p className="leading-relaxed font-medium text-rose-800">
+                    Pengeluaran murni toko (sewa ruko, listrik, PAM, gaji karyawan Yani & Ujang, servis mesin, sparepart, gas, bensin). Nilai ini akan dihitung sebagai pengurang margin laba usaha toko.
                   </p>
                 </div>
               )}
 
-              {/* Penjelasan jika SETORAN */}
-              {expenseGoal === 'setoran' && (
-                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 text-xs sm:text-sm space-y-1">
+              {/* BANNER PENJELAS: AMBIL DANA USAHA (DEBIT PRIBADI) */}
+              {expenseGoal === 'ambil_usaha' && (
+                <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-950 text-xs sm:text-sm space-y-1">
                   <div className="font-extrabold flex items-center space-x-1.5 text-amber-900">
-                    <Target className="w-4 h-4 text-amber-600" />
-                    <span>Setoran Realisasi Target Investor</span>
+                    <ArrowDownLeft className="w-4 h-4 text-amber-600" />
+                    <span>Ambil Dana Usaha tuk Pribadi (Debit / Uang Masuk ke Kantong Mami)</span>
                   </div>
                   <p className="text-xs text-amber-800 leading-relaxed font-semibold">
-                    Pencatatan ini akan langsung dihitung sebagai realisasi <strong>Target Setoran Investor (Rp 10.000.000 / Bulan)</strong> dan otomatis mengurangi sisa target yang harus dipenuhi.
+                    Dana diambil dari kasir tunai atau rekening bank usaha toko untuk keperluan pribadi Mami Lina. Dicatat sebagai modal pribadi masuk (Debit) dan <strong>TIDAK MEMOTONG Margin Laba Operasional Toko</strong>.
                   </p>
                 </div>
               )}
 
-              {/* Pilihan Dompet Pembayar (Tersedia untuk Operasional dan Pengeluaran Pribadi) */}
-              {expenseGoal !== 'setoran' && (
+              {/* BANNER PENJELAS: BELANJA PRIBADI (KREDIT PRIBADI) */}
+              {expenseGoal === 'belanja_pribadi' && (
+                <div className="p-3.5 bg-purple-50 border border-purple-300 rounded-xl text-purple-950 text-xs sm:text-sm space-y-1">
+                  <div className="font-extrabold flex items-center space-x-1.5 text-purple-900">
+                    <ShoppingCart className="w-4 h-4 text-purple-600" />
+                    <span>Pengeluaran untuk Keperluan Pribadi (Kredit / Belanja Mami Lina)</span>
+                  </div>
+                  <p className="text-xs text-purple-800 leading-relaxed font-semibold">
+                    Catat pengeluaran belanja pribadi Mami Lina (dapur, pakaian, kebutuhan rumah tangga, dll). Pengeluaran ini <strong>MURNI MEMOTONG SALDO DANA PRIBADI MAMI</strong>, dan <strong>SAMA SEKALI TIDAK MEMOTONG DANA / BIAYA USAHA TOKO</strong>.
+                  </p>
+                </div>
+              )}
+
+              {/* SUMBER DANA: Ditampilkan jika BIAYA TOKO atau AMBIL DANA USAHA */}
+              {expenseGoal !== 'belanja_pribadi' && expenseGoal !== 'setoran' && (
                 <>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                      Sumber Dana (Dompet yang Membayar / Ditarik)
+                      Sumber Dana Usaha (Dompet yang Membayar / Ditarik)
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <button
@@ -553,7 +599,7 @@ export default function TransactionModal({
                   {isCash && (
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                        {expenseGoal === 'pribadi' ? 'Diambil Dari Kasir Unit' : 'Beban Unit Usaha'}
+                        {expenseGoal === 'ambil_usaha' ? 'Diambil Dari Kasir Unit' : 'Beban Unit Usaha'}
                       </label>
                       <div className="grid grid-cols-2 gap-3">
                         <button
@@ -584,7 +630,7 @@ export default function TransactionModal({
                     </div>
                   )}
 
-                  {/* Cost Type hanya untuk Biaya Operasional Toko */}
+                  {/* Cost Type hanya untuk Biaya Usaha Toko */}
                   {expenseGoal === 'operasional' && (
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-1.5">Jenis Biaya (Cost Type)</label>
@@ -629,7 +675,7 @@ export default function TransactionModal({
               <span className="absolute left-4 top-3 text-sm font-bold text-slate-400">Rp</span>
               <input
                 type="text"
-                placeholder="Contoh: 1.000.000"
+                placeholder="Contoh: 100.000"
                 value={rawAmount}
                 onChange={(e) => setRawAmount(formatInputRupiah(e.target.value))}
                 required
@@ -643,31 +689,35 @@ export default function TransactionModal({
             )}
           </div>
 
-          {/* Catatan / Keterangan Pengeluaran */}
+          {/* Catatan / Keterangan */}
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               {type === 'pengeluaran'
-                ? expenseGoal === 'pribadi'
-                  ? 'Keperluan Pribadi (Opsional)'
+                ? expenseGoal === 'ambil_usaha'
+                  ? 'Keterangan Ambil Dana Usaha (Opsional)'
+                  : expenseGoal === 'belanja_pribadi'
+                  ? 'Keterangan Keperluan Belanja Pribadi (Wajib)'
                   : expenseGoal === 'setoran'
                   ? 'Catatan Setoran Target'
-                  : 'Keterangan Pengeluaran Operasional'
+                  : 'Keterangan Pengeluaran Operasional Toko (Wajib)'
                 : 'Catatan Tambahan (Opsional)'}
             </label>
             <input
               type="text"
               placeholder={
                 type === 'pengeluaran'
-                  ? expenseGoal === 'pribadi'
-                    ? 'Contoh: Kebutuhan pribadi Mami Lina / Belanja bulanan'
+                  ? expenseGoal === 'ambil_usaha'
+                    ? 'Contoh: Tarik kas toko tuk keperluan pribadi / belanja'
+                    : expenseGoal === 'belanja_pribadi'
+                    ? 'Contoh: Belanja kebutuhan dapur / beli pakaian / uang jajan'
                     : expenseGoal === 'setoran'
-                    ? 'Contoh: Setoran tahap 1 ke rekening pribadi pemilik'
-                    : 'Contoh: Pembelian Gas LPG 3 tabung'
+                    ? 'Contoh: Setoran tahap 1 ke rekening pemilik'
+                    : 'Contoh: Pembelian Gas LPG 3 tabung / Listrik'
                   : 'Catatan tambahan jika ada...'
               }
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              required={type === 'pengeluaran' && expenseGoal === 'operasional'}
+              required={type === 'pengeluaran' && (expenseGoal === 'operasional' || expenseGoal === 'belanja_pribadi')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
           </div>
@@ -676,11 +726,13 @@ export default function TransactionModal({
           <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-start space-x-2.5 text-xs text-slate-600">
             <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
             <span className="font-medium">
-              Pencatatan ini akan tersimpan ke buku transaksi resmi sebagai <strong>Pemilik</strong> (
+              Pencatatan ini tersimpan resmi sebagai <strong>Pemilik Mami Lina</strong> (
               {type === 'penerimaan'
-                ? isCash ? 'Kasir Tunai Cash' : 'Mutasi Transfer Bank'
-                : expenseGoal === 'pribadi'
-                ? 'Pengeluaran Pribadi (Prive Pemilik)'
+                ? isCash ? 'Kasir Tunai Cash Toko' : 'Mutasi Transfer Bank Toko'
+                : expenseGoal === 'ambil_usaha'
+                ? 'Ambil Dana Usaha tuk Pribadi (Debit)'
+                : expenseGoal === 'belanja_pribadi'
+                ? 'Pengeluaran Keperluan Pribadi (Kredit)'
                 : expenseGoal === 'setoran'
                 ? 'Realisasi Setoran Target'
                 : 'Biaya Operasional Toko'}
@@ -695,10 +747,12 @@ export default function TransactionModal({
             className={`w-full flex items-center justify-center space-x-2 py-3.5 text-white font-bold text-sm sm:text-base rounded-xl shadow-sm transition active:scale-98 disabled:opacity-50 ${
               type === 'penerimaan'
                 ? 'bg-emerald-600 hover:bg-emerald-700'
-                : expenseGoal === 'pribadi'
-                ? 'bg-purple-600 hover:bg-purple-700'
+                : expenseGoal === 'ambil_usaha'
+                ? 'bg-amber-600 hover:bg-amber-700 text-white font-black'
+                : expenseGoal === 'belanja_pribadi'
+                ? 'bg-purple-600 hover:bg-purple-700 font-black'
                 : expenseGoal === 'setoran'
-                ? 'bg-amber-600 hover:bg-amber-700 text-slate-950 font-black'
+                ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black'
                 : 'bg-rose-600 hover:bg-rose-700'
             }`}
           >
@@ -707,12 +761,14 @@ export default function TransactionModal({
               {submitting
                 ? 'Menyimpan Transaksi...'
                 : type === 'penerimaan'
-                ? 'Simpan Penerimaan'
-                : expenseGoal === 'pribadi'
-                ? 'Simpan Pengeluaran Pribadi'
+                ? 'Simpan Penerimaan Toko'
+                : expenseGoal === 'ambil_usaha'
+                ? 'Simpan Ambil Dana Usaha (Debit)'
+                : expenseGoal === 'belanja_pribadi'
+                ? 'Simpan Belanja Pribadi (Kredit)'
                 : expenseGoal === 'setoran'
                 ? 'Simpan Setoran Target'
-                : 'Simpan Biaya Operasional'}
+                : 'Simpan Biaya Toko'}
             </span>
           </button>
         </form>

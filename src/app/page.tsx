@@ -12,7 +12,7 @@ import { Transaction, TransactionType, SubCategory, UserProfile, TenantProfile, 
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions, deleteTransactionFromSupabase } from '@/lib/transactions';
 import { fetchDailyOmzet } from '@/lib/omzet';
-import { formatRupiah } from '@/lib/formatters';
+import { formatRupiah, formatDateIndo } from '@/lib/formatters';
 import {
   PlusCircle,
   Banknote,
@@ -31,6 +31,9 @@ import {
   TrendingUp,
   User,
   Wallet,
+  ShoppingCart,
+  Receipt,
+  Sparkles,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -97,12 +100,14 @@ export default function DashboardPage() {
     setTransactions((prev) => [newTx, ...prev]);
     const label =
       newTx.type === 'penerimaan'
-        ? 'Penerimaan berhasil disimpan.'
+        ? 'Penerimaan toko berhasil disimpan.'
         : newTx.sub_category === 'penarikan_investor'
-        ? 'Pengeluaran pribadi (Prive) berhasil disimpan.'
+        ? 'Ambil dana usaha (Debit Pribadi) berhasil disimpan.'
+        : newTx.sub_category === 'pengeluaran_pribadi'
+        ? 'Pengeluaran keperluan pribadi (Kredit) berhasil disimpan.'
         : newTx.sub_category === 'disetor_investor'
         ? 'Setoran target berhasil disimpan.'
-        : 'Pengeluaran operasional berhasil disimpan.';
+        : 'Biaya operasional toko berhasil disimpan.';
     setSuccessMessage(label);
     setTimeout(() => {
       setSuccessMessage(null);
@@ -158,15 +163,56 @@ export default function DashboardPage() {
   const todayStr = getLocalDateString();
   const currentMonthPrefix = todayStr.substring(0, 7);
 
-  // 1. Calculations: Akumulasi Keseluruhan (All-time / Total Penerimaan & Pengeluaran)
+  // =========================================================================
+  // 1. PEMISAHAN FUNDAMENTAL: DANA USAHA VS DANA PRIBADI (AKUNTANSI BERSIH)
+  // =========================================================================
+
+  // A. Penerimaan Usaha (Uang Masuk dari Pelanggan Toko)
   const allIncomeTxs = transactions.filter((t) => t.type === 'penerimaan');
-  const allExpenseTxs = transactions.filter((t) => t.type === 'pengeluaran');
+  const totalStoreIncome = allIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  const totalIncome = allIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const totalExpense = allExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const netBalance = totalIncome - totalExpense;
+  // B. Biaya Operasional Toko (Murni Pengeluaran Usaha Toko)
+  // Tidak memuat penarikan pribadi, tidak memuat belanja pribadi, tidak memuat setoran investor!
+  const storeOpsTxs = transactions.filter(
+    (t) =>
+      t.type === 'pengeluaran' &&
+      t.sub_category !== 'penarikan_investor' &&
+      t.sub_category !== 'pengeluaran_pribadi' &&
+      t.sub_category !== 'disetor_investor'
+  );
+  const totalStoreOpsExpense = storeOpsTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // Pemisahan Tiga Dompet Spesifik: Rekening Laundry, Rekening Reparasi, dan Kasir Tunai Toko
+  // C. Margin Usaha Toko (Laba Bersih Toko) -> TIDAK MEMOTONG DANA PRIBADI!
+  const storeMargin = totalStoreIncome - totalStoreOpsExpense;
+  const storeMarginPercentage = totalStoreIncome > 0 ? ((storeMargin / totalStoreIncome) * 100).toFixed(1) : '0';
+
+  // D. Aliran Dana Pribadi Mami Lina (Laporan Terpisah)
+  // 1. DEBIT: Uang usaha yang ditarik untuk kantong pribadi Mami Lina
+  const priveDebitTxs = transactions.filter((t) => t.sub_category === 'penarikan_investor');
+  const totalPriveDebit = priveDebitTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const priveDebitCash = priveDebitTxs
+    .filter((t) => t.payment_method === 'cash')
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const priveDebitRekLaundry = priveDebitTxs
+    .filter((t) => t.bank_account === 'rekening_laundry' || (!t.bank_account && t.payment_method === 'transfer' && t.business_unit !== 'reparasi'))
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const priveDebitRekReparasi = priveDebitTxs
+    .filter((t) => t.bank_account === 'rekening_reparasi' || (!t.bank_account && t.payment_method === 'transfer' && t.business_unit === 'reparasi'))
+    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  // 2. KREDIT: Belanja / pengeluaran untuk keperluan pribadi Mami Lina
+  const personalCreditTxs = transactions.filter((t) => t.sub_category === 'pengeluaran_pribadi');
+  const totalPersonalCredit = personalCreditTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  // 3. Sisa Saldo Dana Pribadi Mami Lina = DEBIT - KREDIT
+  const personalBalance = totalPriveDebit - totalPersonalCredit;
+
+  // =========================================================================
+  // 2. DETAIL TIGA DOMPET USAHA (REK LAUNDRY, REK REPARASI, KASIR TOKO)
+  // =========================================================================
   const isRekeningLaundry = (t: Transaction) => {
     if (t.bank_account === 'rekening_laundry') return true;
     if (t.bank_account === 'rekening_reparasi') return false;
@@ -179,61 +225,48 @@ export default function DashboardPage() {
     return t.payment_method === 'transfer' && t.business_unit === 'reparasi';
   };
 
-  // Penerimaan Bank Laundry & Reparasi
+  // 1. Rekening Laundry (BCA)
   const bankLaundryIncomeTxs = allIncomeTxs.filter(isRekeningLaundry);
   const bankLaundryIncome = bankLaundryIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  
-  // Pengeluaran Bank Laundry (Detail itemized)
-  const bankLaundryExpenseTxs = allExpenseTxs.filter(isRekeningLaundry);
-  const bankLaundryExpense = bankLaundryExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  
-  const bankLaundrySewa = bankLaundryExpenseTxs
+
+  const bankLaundryOpsExpenseTxs = storeOpsTxs.filter(isRekeningLaundry);
+  const bankLaundryOpsExpense = bankLaundryOpsExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const bankLaundrySewa = bankLaundryOpsExpenseTxs
     .filter((t) => (t.notes || '').toLowerCase().includes('sewa'))
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundrySetoran = bankLaundryExpenseTxs
-    .filter((t) => t.sub_category === 'disetor_investor')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundryPribadi = bankLaundryExpenseTxs
-    .filter((t) => t.sub_category === 'penarikan_investor')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankLaundryOpsExpense = bankLaundryExpense - bankLaundrySewa - bankLaundrySetoran - bankLaundryPribadi;
+  const bankLaundryOpsOther = bankLaundryOpsExpense - bankLaundrySewa;
 
-  // Penerimaan & Pengeluaran Bank Reparasi
+  const bankLaundryBalance = bankLaundryIncome - bankLaundryOpsExpense - priveDebitRekLaundry;
+
+  // 2. Rekening Reparasi (BCA)
   const bankReparasiIncomeTxs = allIncomeTxs.filter(isRekeningReparasi);
   const bankReparasiIncome = bankReparasiIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const bankReparasiExpenseTxs = allExpenseTxs.filter(isRekeningReparasi);
-  const bankReparasiExpense = bankReparasiExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
+  const bankReparasiOpsExpenseTxs = storeOpsTxs.filter(isRekeningReparasi);
+  const bankReparasiOpsExpense = bankReparasiOpsExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const bankReparasiBalance = bankReparasiIncome - bankReparasiOpsExpense - priveDebitRekReparasi;
+
+  // Total Bank
   const bankIncome = bankLaundryIncome + bankReparasiIncome;
   const bankIncomeCount = bankLaundryIncomeTxs.length + bankReparasiIncomeTxs.length;
 
-  // Kasir Tunai Toko
+  // 3. Kasir Tunai Toko (Cash)
   const cashIncomeTxs = allIncomeTxs.filter((t) => t.payment_method === 'cash');
   const cashIncome = cashIncomeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const cashExpenseTxs = allExpenseTxs.filter((t) => t.payment_method === 'cash');
-  const cashExpense = cashExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // Kategori Khusus: Pengeluaran Pribadi Pemilik (Prive)
-  const personalExpenseTxs = allExpenseTxs.filter((t) => t.sub_category === 'penarikan_investor');
-  const totalPersonalExpense = personalExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const personalExpenseCash = personalExpenseTxs
-    .filter((t) => t.payment_method === 'cash')
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const personalExpenseRekLaundry = personalExpenseTxs
-    .filter(isRekeningLaundry)
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const personalExpenseRekReparasi = personalExpenseTxs
-    .filter(isRekeningReparasi)
-    .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const cashOpsExpenseTxs = storeOpsTxs.filter((t) => t.payment_method === 'cash');
+  const cashOpsExpense = cashOpsExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // Murni Biaya Operasional Toko (di luar Setoran dan di luar Prive Pribadi)
-  const operationalExpenseTxs = allExpenseTxs.filter(
-    (t) => t.sub_category !== 'disetor_investor' && t.sub_category !== 'penarikan_investor'
-  );
-  const totalOperationalExpense = operationalExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const operationalProfit = totalIncome - totalOperationalExpense;
+  const cashBalance = cashIncome - cashOpsExpense - priveDebitCash;
 
-  // 2. Calculations: Hari Ini (Berdasarkan tanggal lokal outlet)
+  // Total Sisa Kas & Bank Fisik Toko
+  const totalStoreCashAndBank = bankLaundryBalance + bankReparasiBalance + cashBalance;
+
+  // =========================================================================
+  // 3. KALKULASI HARI INI
+  // =========================================================================
   const todayOmzetRecord = dailyOmzetList.find((o) => o.date === todayStr);
   const todayOmzetLaundry = todayOmzetRecord ? Number(todayOmzetRecord.omzet_laundry || 0) : 0;
   const todayOmzetReparasi = todayOmzetRecord ? Number(todayOmzetRecord.omzet_reparasi || 0) : 0;
@@ -254,19 +287,28 @@ export default function DashboardPage() {
 
   const todayIncomeTotalCount = todayIncomeCashTxs.length + todayIncomeTransferTxs.length;
 
-  const todayExpenseTxs = todayTxs.filter((t) => t.type === 'pengeluaran');
-  const todayExpenseTotal = todayExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  
-  const todayPersonalExpenseTxs = todayExpenseTxs.filter((t) => t.sub_category === 'penarikan_investor');
-  const todayPersonalExpense = todayPersonalExpenseTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const todayStoreOpsTxs = todayTxs.filter(
+    (t) =>
+      t.type === 'pengeluaran' &&
+      t.sub_category !== 'penarikan_investor' &&
+      t.sub_category !== 'pengeluaran_pribadi' &&
+      t.sub_category !== 'disetor_investor'
+  );
+  const todayStoreOpsExpense = todayStoreOpsTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // 3. Calculations: Target Setoran Bulan Ini
+  const todayPriveDebitTxs = todayTxs.filter((t) => t.sub_category === 'penarikan_investor');
+  const todayPriveDebit = todayPriveDebitTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const todayPersonalCreditTxs = todayTxs.filter((t) => t.sub_category === 'pengeluaran_pribadi');
+  const todayPersonalCredit = todayPersonalCreditTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  // Target Setoran Bulan Ini
   const monthTxs = transactions.filter((t) => t.transaction_date && t.transaction_date.startsWith(currentMonthPrefix));
   const monthDisetor = monthTxs
     .filter((t) => t.type === 'pengeluaran' && t.sub_category === 'disetor_investor')
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // 4. Data Grafik 6 Hari Terakhir (Murni dari public.daily_omzet)
+  // Data Grafik 6 Hari Terakhir (Murni dari public.daily_omzet)
   const dailyData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (5 - i));
@@ -280,7 +322,7 @@ export default function DashboardPage() {
     return { label: dayName, omset };
   });
 
-  // 5. Data Grafik 6 Bulan Terakhir (Murni dari public.daily_omzet)
+  // Data Grafik 6 Bulan Terakhir (Murni dari public.daily_omzet)
   const monthlyData = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
@@ -320,58 +362,150 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Header & Quick Add */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          {/* Header & Quick Action Buttons */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Halaman Utama (Dashboard)</h2>
-              <p className="text-sm font-semibold text-slate-600">Ringkasan performa keuangan outlet & progres setoran investor.</p>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Halaman Utama (Dashboard)</h2>
+                <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 uppercase">
+                  Mami Lina
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-slate-600 mt-1">
+                SaaS Keuangan Pribadi: Pengendalian Dana Usaha Toko Trio R & Buku Arus Kas Pribadi.
+              </p>
             </div>
 
+            {/* Tombol Aksi Cepat */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setIsOmzetModalOpen(true)}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center space-x-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>+ Input Omzet Harian</span>
+                <span>+ Input Omzet</span>
               </button>
               <button
                 onClick={() => handleOpenTransactionModal('penerimaan')}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center space-x-1.5 px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>+ Input Penerimaan</span>
+                <span>+ Penerimaan Toko</span>
               </button>
               <button
-                onClick={() => handleOpenTransactionModal('pengeluaran')}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
+                onClick={() => handleOpenTransactionModal('pengeluaran', 'operasional')}
+                className="flex items-center space-x-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>+ Input Biaya Toko</span>
+                <span>+ Biaya Toko</span>
               </button>
               <button
                 onClick={() => handleOpenTransactionModal('pengeluaran', 'penarikan_investor')}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center space-x-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-xs transition active:scale-95"
               >
-                <User className="w-4 h-4" />
-                <span>+ Pengeluaran Pribadi</span>
+                <ArrowDownLeft className="w-4 h-4" />
+                <span>+ Ambil Usaha (Debit)</span>
               </button>
               <button
-                onClick={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-sm transition active:scale-95"
+                onClick={() => handleOpenTransactionModal('pengeluaran', 'pengeluaran_pribadi')}
+                className="flex items-center space-x-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs transition active:scale-95"
               >
-                <Target className="w-4 h-4" />
-                <span>+ Catat Setoran</span>
+                <ShoppingCart className="w-4 h-4" />
+                <span>+ Belanja Pribadi (Kredit)</span>
               </button>
             </div>
           </div>
 
-          {/* Target Setoran 10jt Card */}
-          <TargetProgress
-            totalDisetor={monthDisetor}
-            role={userProfile?.role}
-            onOpenSetoranModal={() => handleOpenTransactionModal('pengeluaran', 'disetor_investor')}
-          />
+          {/* ========================================================= */}
+          {/* HIGHLIGHT UTAMA: PERFORMA DANA USAHA & ARUS KAS PRIBADI */}
+          {/* ========================================================= */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* Kartu 1: Margin Usaha Bersih Toko */}
+            <div className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-5 rounded-2xl shadow-sm space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-100">
+                  Margin Usaha (Laba Toko)
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
+                  {storeMarginPercentage}% Margin
+                </span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white">
+                {formatRupiah(storeMargin)}
+              </div>
+              <div className="text-xs text-emerald-100 font-medium">
+                Penerimaan: {formatRupiah(totalStoreIncome)} - Biaya: {formatRupiah(totalStoreOpsExpense)}
+              </div>
+              <div className="pt-1 text-[11px] text-emerald-200 font-semibold border-t border-emerald-500/40">
+                ✨ Murni laba usaha, tidak terpotong dana pribadi.
+              </div>
+            </div>
+
+            {/* Kartu 2: Ambil Dana Usaha tuk Pribadi (Debit) */}
+            <div className="bg-gradient-to-br from-amber-600 to-amber-800 text-white p-5 rounded-2xl shadow-sm space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-100">
+                  Ambil Dana Usaha (Debit)
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
+                  {priveDebitTxs.length}x Tarik
+                </span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white">
+                {formatRupiah(totalPriveDebit)}
+              </div>
+              <div className="text-xs text-amber-100 font-medium">
+                Uang masuk ke kantong Mami Lina dari kas/bank toko.
+              </div>
+              <div className="pt-1 text-[11px] text-amber-200 font-semibold border-t border-amber-500/40">
+                Laundry: {formatRupiah(priveDebitRekLaundry)} • Rep: {formatRupiah(priveDebitRekReparasi)} • Cash: {formatRupiah(priveDebitCash)}
+              </div>
+            </div>
+
+            {/* Kartu 3: Pengeluaran Belanja Pribadi (Kredit) */}
+            <div className="bg-gradient-to-br from-purple-600 to-indigo-800 text-white p-5 rounded-2xl shadow-sm space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black uppercase tracking-wider text-purple-100">
+                  Belanja Pribadi (Kredit)
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
+                  {personalCreditTxs.length}x Belanja
+                </span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white">
+                {formatRupiah(totalPersonalCredit)}
+              </div>
+              <div className="text-xs text-purple-100 font-medium">
+                Pengeluaran kebutuhan pribadi Mami Lina.
+              </div>
+              <div className="pt-1 text-[11px] text-purple-200 font-semibold border-t border-purple-500/40">
+                🔒 0% memotong usaha (hanya memotong saldo pribadi).
+              </div>
+            </div>
+
+            {/* Kartu 4: Sisa Saldo Dana Pribadi Mami */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-2xl shadow-sm space-y-2 border border-slate-700">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                  Sisa Saldo Pribadi Mami
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 border border-emerald-400/40">
+                  Kantong Pribadi
+                </span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-400">
+                {formatRupiah(personalBalance)}
+              </div>
+              <div className="text-xs text-slate-300 font-medium">
+                Debit ({formatRupiah(totalPriveDebit)}) - Kredit ({formatRupiah(totalPersonalCredit)})
+              </div>
+              <div className="pt-1 text-[11px] text-slate-400 font-semibold border-t border-slate-700">
+                Uang di tangan pribadi Mami yang masih siap pakai.
+              </div>
+            </div>
+
+          </div>
 
           {/* ========================================================= */}
           {/* SEKSI 1: REKAP OMZET OPERASIONAL HARIAN (MURNI daily_omzet) */}
@@ -408,14 +542,12 @@ export default function DashboardPage() {
                       <Clock className="w-4 h-4 mr-1.5 text-amber-600" />
                       Belum Diinput Hari Ini ({todayStr})
                     </span>
-                    {userProfile?.role === 'investor' && (
-                      <button
-                        onClick={() => setIsOmzetModalOpen(true)}
-                        className="text-xs sm:text-sm font-bold px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition active:scale-95 shadow-xs"
-                      >
-                        + Input Sekarang
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setIsOmzetModalOpen(true)}
+                      className="text-xs sm:text-sm font-bold px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition active:scale-95 shadow-xs"
+                    >
+                      + Input Sekarang
+                    </button>
                   </div>
                 )}
               </div>
@@ -490,452 +622,420 @@ export default function DashboardPage() {
           </div>
 
           {/* ========================================================= */}
-          {/* SEKSI 2: ARUS KAS MASUK & KELUAR (PENERIMAAN VS PENGELUARAN) */}
+          {/* SEKSI 2: KEUANGAN USAHA TOKO TRIO R (3 KANTONG DOMPET) */}
           {/* ========================================================= */}
           <div className="space-y-4">
-            <div>
-              <h3 className="font-black text-slate-900 text-lg sm:text-xl">Arus Uang Masuk & Uang Keluar (Penerimaan vs Pengeluaran)</h3>
-              <p className="text-sm font-medium text-slate-600">
-                Pencatatan uang masuk kasir/bank, biaya operasional toko, dan pengeluaran pribadi pemilik di buku transaksi (<code className="text-sky-800 font-mono font-bold">transactions</code>).
-              </p>
-            </div>
-
-            {/* Ringkasan Hari Ini */}
-            <div className="bg-slate-100/90 p-5 rounded-2xl border border-slate-200 space-y-3">
-              <div className="flex justify-between items-center px-1">
-                <span className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Penerimaan & Pengeluaran Hari Ini ({todayStr})</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-600">{todayTxs.length} Transaksi Hari Ini</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                {/* Cash Hari Ini */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-600 uppercase">Kasir Tunai (Cash)</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      {todayIncomeCashTxs.length} Nota
-                    </span>
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(todayIncomeCash)}</div>
-                  <div className="text-[11px] font-semibold text-slate-500 mt-1">{todayIncomeCashTxs.length} nota kasir terbayar</div>
-                </div>
-
-                {/* Transfer Hari Ini */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-600 uppercase">Transfer Bank</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">
-                      {todayIncomeTransferTxs.length} Nota
-                    </span>
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-slate-900">{formatRupiah(todayIncomeTransfer)}</div>
-                  <div className="text-[11px] font-semibold text-slate-500 mt-1">{todayIncomeTransferTxs.length} transfer bank terbayar</div>
-                </div>
-
-                {/* Biaya Toko Hari Ini */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                  <span className="text-xs font-bold text-slate-600 uppercase block mb-1">Biaya Toko Hari Ini</span>
-                  <div className="text-xl sm:text-2xl font-black text-rose-600">{formatRupiah(todayExpenseTotal - todayPersonalExpense)}</div>
-                  <div className="text-[11px] font-semibold text-rose-600 mt-1">Operasional & Setoran</div>
-                </div>
-
-                {/* Pengeluaran Pribadi Hari Ini */}
-                <div className="bg-white p-4 rounded-xl border border-purple-200 shadow-2xs">
-                  <span className="text-xs font-bold text-purple-800 uppercase block mb-1">Prive Pribadi Hari Ini</span>
-                  <div className="text-xl sm:text-2xl font-black text-purple-700">{formatRupiah(todayPersonalExpense)}</div>
-                  <div className="text-[11px] font-semibold text-purple-600 mt-1">Penarikan Pemilik</div>
-                </div>
-
-                {/* Total Uang Masuk Hari Ini */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-600 uppercase">Total Penerimaan</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
-                      {todayIncomeTotalCount} Nota
-                    </span>
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-emerald-600">{formatRupiah(todayIncomeCash + todayIncomeTransfer)}</div>
-                  <div className="text-[11px] font-semibold text-emerald-700 mt-1">Total uang masuk</div>
-                </div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h3 className="font-black text-slate-900 text-lg sm:text-xl flex items-center gap-2">
+                  <span>Dana Usaha Toko Trio R (Pemisahan 3 Kantong)</span>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    Sisa Kas/Bank Toko: {formatRupiah(totalStoreCashAndBank)}
+                  </span>
+                </h3>
+                <p className="text-sm font-medium text-slate-600">
+                  Uang masuk pelanggan, biaya operasional toko, dan aliran penarikan dana usaha ke pribadi.
+                </p>
               </div>
             </div>
 
-            {/* Pemisahan Dua Dompet: Rekening Bank (Pemilik) vs Kasir Tunai Toko */}
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            {/* 3 KARTU KANTONG DOMPET USAHA */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              
+              {/* DOMPET 1: REKENING LAUNDRY (BCA) */}
+              <div className="bg-gradient-to-br from-sky-50 via-white to-sky-50/40 p-5 rounded-2xl border-2 border-sky-300 shadow-sm space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-sky-100">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2.5 bg-sky-600 text-white rounded-xl">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-wider text-sky-800 block">
+                        Rekening Laundry
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer BCA (Laundry)</span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+                    BCA
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 pt-1 text-xs sm:text-sm">
+                  {/* Transfer Masuk */}
+                  <div className="bg-white/90 p-3 rounded-xl border border-sky-100 flex justify-between items-center">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
+                      <span className="text-base font-black text-emerald-700">{formatRupiah(bankLaundryIncome)}</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-sky-100 text-sky-800">
+                      {bankLaundryIncomeTxs.length} Nota
+                    </span>
+                  </div>
+
+                  {/* Biaya Operasional Toko */}
+                  <div className="bg-white/90 p-3 rounded-xl border border-sky-100 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] font-bold text-slate-600 block">Biaya Operasional Toko</span>
+                      <span className="text-base font-black text-rose-700">{formatRupiah(bankLaundryOpsExpense)}</span>
+                    </div>
+                    <div className="pt-1 border-t border-slate-100 text-[11px] text-slate-600 space-y-0.5 font-medium">
+                      <div className="flex justify-between">
+                        <span>• Sewa Laundry:</span>
+                        <span className="font-bold text-slate-800">{formatRupiah(bankLaundrySewa)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>• Operasional Bank:</span>
+                        <span className="font-bold text-slate-800">{formatRupiah(bankLaundryOpsOther)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 italic pt-0.5">Listrik, PAM, Servis mesin, Smartlink, Name tag.</p>
+                    </div>
+                  </div>
+
+                  {/* Ambil ke Pribadi */}
+                  {priveDebitRekLaundry > 0 && (
+                    <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex justify-between items-center text-xs text-amber-900 font-bold">
+                      <span>• Ditarik ke Pribadi (Debit):</span>
+                      <span className="text-amber-800 font-black">{formatRupiah(priveDebitRekLaundry)}</span>
+                    </div>
+                  )}
+
+                  {/* Sisa Saldo Rekening */}
+                  <div className="bg-sky-100/70 p-3 rounded-xl border border-sky-200 flex justify-between items-center">
+                    <span className="text-xs font-black text-sky-950 uppercase">Sisa Saldo Rek. Laundry</span>
+                    <span className="text-base font-black text-sky-900">{formatRupiah(bankLaundryBalance)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* DOMPET 2: REKENING REPARASI (BCA) */}
+              <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/40 p-5 rounded-2xl border-2 border-purple-300 shadow-sm space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-purple-100">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2.5 bg-purple-600 text-white rounded-xl">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-wider text-purple-800 block">
+                        Rekening Reparasi (Steril)
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer BCA (Reparasi)</span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                    BCA
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 pt-1 text-xs sm:text-sm">
+                  {/* Transfer Masuk */}
+                  <div className="bg-white/90 p-3 rounded-xl border border-purple-100 flex justify-between items-center">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
+                      <span className="text-base font-black text-emerald-700">{formatRupiah(bankReparasiIncome)}</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-100 text-purple-800">
+                      {bankReparasiIncomeTxs.length} Nota
+                    </span>
+                  </div>
+
+                  {/* Biaya Operasional Toko */}
+                  <div className="bg-white/90 p-3 rounded-xl border border-purple-100 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] font-bold text-slate-600 block">Biaya Operasional Toko</span>
+                      <span className="text-base font-black text-rose-700">{formatRupiah(bankReparasiOpsExpense)}</span>
+                    </div>
+                    <div className="pt-1 border-t border-slate-100 text-[11px] text-slate-600 space-y-0.5 font-medium">
+                      <div className="flex justify-between">
+                        <span>• Gaji Bu Linna:</span>
+                        <span className="font-bold text-slate-800">Rp 800.000</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>• Pa Aris (Reparasi):</span>
+                        <span className="font-bold text-slate-800">Rp 120.000</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>• Sparepart Reparasi:</span>
+                        <span className="font-bold text-slate-800">Rp 205.000</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ambil ke Pribadi */}
+                  {priveDebitRekReparasi > 0 && (
+                    <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex justify-between items-center text-xs text-amber-900 font-bold">
+                      <span>• Ditarik ke Pribadi (Debit):</span>
+                      <span className="text-amber-800 font-black">{formatRupiah(priveDebitRekReparasi)}</span>
+                    </div>
+                  )}
+
+                  {/* Sisa Saldo Rekening */}
+                  <div className="bg-purple-100/70 p-3 rounded-xl border border-purple-200 flex justify-between items-center">
+                    <span className="text-xs font-black text-purple-950 uppercase">Sisa Saldo Rek. Reparasi</span>
+                    <span className="text-base font-black text-purple-900">{formatRupiah(bankReparasiBalance)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* DOMPET 3: KASIR TUNAI TOKO (CASH) */}
+              <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-5 rounded-2xl border-2 border-emerald-300 shadow-sm space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-emerald-100">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2.5 bg-emerald-600 text-white rounded-xl">
+                      <Banknote className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-wider text-emerald-800 block">
+                        Kasir Tunai Toko
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-slate-700">Operasional Kasir (Cash Toko)</span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Cash Toko
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 pt-1 text-xs sm:text-sm">
+                  {/* Cash Masuk */}
+                  <div className="bg-white/90 p-3 rounded-xl border border-emerald-100 flex justify-between items-center">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-600 block">Cash Masuk Toko</span>
+                      <span className="text-base font-black text-emerald-700">{formatRupiah(cashIncome)}</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                      {cashIncomeTxs.length} Nota
+                    </span>
+                  </div>
+
+                  {/* Belanja Operasional Toko */}
+                  <div className="bg-white/90 p-3 rounded-xl border border-emerald-100 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] font-bold text-slate-600 block">Belanja Operasional Toko (Cash)</span>
+                      <span className="text-base font-black text-rose-700">{formatRupiah(cashOpsExpense)}</span>
+                    </div>
+                    <div className="pt-1 border-t border-slate-100 text-[11px] text-slate-600 space-y-0.5 font-medium">
+                      <div className="flex justify-between">
+                        <span>• Gaji Yani (18 Okt):</span>
+                        <span className="font-bold text-slate-800">Rp 360.000</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>• Gaji Yani sebelumnya:</span>
+                        <span className="font-bold text-slate-800">Rp 600.000</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>• Bensin, Gas & Harian Toko:</span>
+                        <span className="font-bold text-slate-800">{formatRupiah(cashOpsExpense - 960000)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ambil ke Pribadi */}
+                  {priveDebitCash > 0 && (
+                    <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex justify-between items-center text-xs text-amber-900 font-bold">
+                      <span>• Ditarik ke Pribadi (Debit):</span>
+                      <span className="text-amber-800 font-black">{formatRupiah(priveDebitCash)}</span>
+                    </div>
+                  )}
+
+                  {/* Sisa Saldo Kasir */}
+                  <div className="bg-emerald-100/70 p-3 rounded-xl border border-emerald-200 flex justify-between items-center">
+                    <span className="text-xs font-black text-emerald-950 uppercase">Sisa Fisik Kasir Tunai</span>
+                    <span className="text-base font-black text-emerald-900">{formatRupiah(cashBalance)}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ========================================================= */}
+          {/* SEKSI 3: KEUANGAN PRIBADI MAMI LINA (LAPORAN TERPISAH) */}
+          {/* ========================================================= */}
+          <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/50 p-6 sm:p-7 rounded-3xl border-2 border-purple-300 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-purple-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-xs">
+                  <User className="w-6 h-6" />
+                </div>
                 <div>
-                  <h4 className="font-black text-slate-900 text-base sm:text-lg">
-                    Pencatatan Rekening Bank (Pemilik) & Kasir Tunai Toko
-                  </h4>
-                  <p className="text-xs sm:text-sm font-semibold text-slate-600">
-                    Pemisahan transparan antara uang masuk dan uang keluar pada Rekening Bank (Pemilik) dan Kasir Tunai Toko.
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-black text-purple-950 text-xl sm:text-2xl">
+                      Laporan Terpisah: Arus Kas Pribadi Mami Lina
+                    </h3>
+                    <span className="text-xs font-black px-3 py-1 rounded-full bg-purple-100 text-purple-900 border border-purple-300 uppercase">
+                      SaaS Pribadi
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-purple-800 font-medium mt-0.5">
+                    Pemisahan total: Ambil dana usaha tuk pribadi (Debit) vs Input pengeluaran keperluan pribadi (Kredit).
                   </p>
                 </div>
               </div>
 
-              {/* Highlight Pemasukan Pemilik vs Kasir Toko */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-gradient-to-r from-sky-900 to-indigo-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-sky-800">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-sky-200 uppercase tracking-wider block">Total Pemasukan Bank (Rekening Pemilik)</span>
-                      <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-sky-500/30 text-sky-100 border border-sky-400/40">
-                        {bankIncomeCount} Nota Terbayar
-                      </span>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-white mt-0.5">
-                      {formatRupiah(bankIncome)}
-                    </div>
-                    <span className="text-xs text-sky-200 mt-1 block font-semibold">
-                      Laundry: {formatRupiah(bankLaundryIncome)} ({bankLaundryIncomeTxs.length} nota) • Reparasi: {formatRupiah(bankReparasiIncome)} ({bankReparasiIncomeTxs.length} nota)
-                    </span>
-                  </div>
-                  <div className="p-3 bg-white/10 text-sky-300 rounded-xl shrink-0">
-                    <CreditCard className="w-6 h-6" />
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex justify-between items-center border border-emerald-800">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">Total Uang Masuk Kasir (Tunai Toko)</span>
-                      <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-100 border border-emerald-400/40">
-                        {cashIncomeTxs.length} Nota Terbayar
-                      </span>
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-white mt-0.5">
-                      {formatRupiah(cashIncome)}
-                    </div>
-                    <span className="text-xs text-emerald-200 mt-1 block font-semibold">
-                      Total {cashIncomeTxs.length} nota tunai terbayar di kasir toko
-                    </span>
-                  </div>
-                  <div className="p-3 bg-white/10 text-emerald-300 rounded-xl shrink-0">
-                    <Banknote className="w-6 h-6" />
-                  </div>
-                </div>
-              </div>
-
-              {/* 3 KARTU DOMPET DETAIL */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                
-                {/* DOMPET 1: REKENING LAUNDRY */}
-                <div className="bg-gradient-to-br from-sky-50 via-white to-sky-50/40 p-5 rounded-2xl border-2 border-sky-300 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center pb-3 border-b border-sky-100">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="p-2.5 bg-sky-600 text-white rounded-xl">
-                        <CreditCard className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black uppercase tracking-wider text-sky-800 block">
-                          Rekening Laundry
-                        </span>
-                        <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer (Pemilik)</span>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
-                      BCA/Bank
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 pt-1 text-xs sm:text-sm">
-                    {/* Transfer Masuk */}
-                    <div className="bg-white/80 p-3 rounded-xl border border-sky-100 flex justify-between items-center">
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
-                        <span className="text-base font-black text-emerald-700">{formatRupiah(bankLaundryIncome)}</span>
-                      </div>
-                      <span className="text-[11px] font-extrabold px-2 py-0.5 rounded bg-sky-100 text-sky-800">
-                        {bankLaundryIncomeTxs.length} Nota Terbayar
-                      </span>
-                    </div>
-
-                    {/* Pengeluaran Bank & Rincian Transparan */}
-                    <div className="bg-white/90 p-3 rounded-xl border border-sky-200 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-[11px] font-bold text-slate-600 block">Total Pengeluaran Bank</span>
-                          <span className="text-base font-black text-rose-700">{formatRupiah(bankLaundryExpense)}</span>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
-                          {bankLaundryExpenseTxs.length} Transaksi
-                        </span>
-                      </div>
-
-                      {/* Rincian Item Transparan agar Mami Lina Jelas */}
-                      <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1 font-semibold">
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Sewa Laundry:</span>
-                          <span className="font-bold text-slate-900">{formatRupiah(bankLaundrySewa)}</span>
-                        </div>
-                        {bankLaundrySetoran > 0 && (
-                          <div className="flex justify-between text-slate-700">
-                            <span>• Setoran ke Pemilik:</span>
-                            <span className="font-bold text-slate-900">{formatRupiah(bankLaundrySetoran)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Biaya Operasional Bank:</span>
-                          <span className="font-bold text-slate-900">{formatRupiah(bankLaundryOpsExpense)}</span>
-                        </div>
-                        {bankLaundryPribadi > 0 && (
-                          <div className="flex justify-between text-purple-700 font-bold">
-                            <span>• Penarikan Pribadi (Prive):</span>
-                            <span>{formatRupiah(bankLaundryPribadi)}</span>
-                          </div>
-                        )}
-                        <p className="text-[10px] text-slate-500 italic pt-0.5">
-                          Operasional: Listrik (317k), PAM (85k), Servis (375k), Smartlink (56k), Name tag (50k).
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* DOMPET 2: REKENING REPARASI */}
-                <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/40 p-5 rounded-2xl border-2 border-purple-300 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center pb-3 border-b border-purple-100">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="p-2.5 bg-purple-600 text-white rounded-xl">
-                        <CreditCard className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black uppercase tracking-wider text-purple-800 block">
-                          Rekening Reparasi (Steril)
-                        </span>
-                        <span className="text-xs sm:text-sm font-bold text-slate-700">Bank Transfer (Pemilik)</span>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
-                      BCA/Bank
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 pt-1 text-xs sm:text-sm">
-                    {/* Transfer Masuk */}
-                    <div className="bg-white/80 p-3 rounded-xl border border-purple-100 flex justify-between items-center">
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-600 block">Transfer Masuk</span>
-                        <span className="text-base font-black text-emerald-700">{formatRupiah(bankReparasiIncome)}</span>
-                      </div>
-                      <span className="text-[11px] font-extrabold px-2 py-0.5 rounded bg-purple-100 text-purple-800">
-                        {bankReparasiIncomeTxs.length} Nota Terbayar
-                      </span>
-                    </div>
-
-                    {/* Pengeluaran Bank */}
-                    <div className="bg-white/90 p-3 rounded-xl border border-purple-200 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Bank</span>
-                          <span className="text-base font-black text-rose-700">{formatRupiah(bankReparasiExpense)}</span>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
-                          {bankReparasiExpenseTxs.length} Transaksi
-                        </span>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1 font-semibold">
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Gaji Bu Linna:</span>
-                          <span className="font-bold text-slate-900">Rp 800.000</span>
-                        </div>
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Pa Aris:</span>
-                          <span className="font-bold text-slate-900">Rp 120.000</span>
-                        </div>
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Sparepart & Bahan Reparasi:</span>
-                          <span className="font-bold text-slate-900">Rp 205.000</span>
-                        </div>
-                        {personalExpenseRekReparasi > 0 && (
-                          <div className="flex justify-between text-purple-700 font-bold">
-                            <span>• Penarikan Pribadi (Prive):</span>
-                            <span>{formatRupiah(personalExpenseRekReparasi)}</span>
-                          </div>
-                        )}
-                        <p className="text-[10px] text-slate-500 italic pt-0.5">
-                          Sparepart: Kepala resleting (105k), Kaki tas (36k), Webbing (32k), Kunci sodok (32k).
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* DOMPET 3: KASIR TUNAI TOKO */}
-                <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-5 rounded-2xl border-2 border-emerald-300 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center pb-3 border-b border-emerald-100">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="p-2.5 bg-emerald-600 text-white rounded-xl">
-                        <Banknote className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black uppercase tracking-wider text-emerald-800 block">
-                          Kasir Tunai Toko
-                        </span>
-                        <span className="text-xs sm:text-sm font-bold text-slate-700">Operasional Kasir (Cash Toko)</span>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      Uang Tunai
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 pt-1 text-xs sm:text-sm">
-                    {/* Cash Masuk */}
-                    <div className="bg-white/80 p-3 rounded-xl border border-emerald-100 flex justify-between items-center">
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-600 block">Cash Masuk Toko</span>
-                        <span className="text-base font-black text-emerald-700">{formatRupiah(cashIncome)}</span>
-                      </div>
-                      <span className="text-[11px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                        {cashIncomeTxs.length} Nota Terbayar
-                      </span>
-                    </div>
-
-                    {/* Belanja Toko (Cash) */}
-                    <div className="bg-white/90 p-3 rounded-xl border border-emerald-200 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-[11px] font-bold text-slate-600 block">Pengeluaran Kasir (Cash)</span>
-                          <span className="text-base font-black text-rose-700">{formatRupiah(cashExpense)}</span>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          {cashExpenseTxs.length} Transaksi
-                        </span>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1 font-semibold">
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Gaji Yani (18 Okt):</span>
-                          <span className="font-bold text-slate-900">Rp 360.000</span>
-                        </div>
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Gaji Yani sebelumnya:</span>
-                          <span className="font-bold text-slate-900">Rp 600.000</span>
-                        </div>
-                        <div className="flex justify-between text-slate-700">
-                          <span>• Bensin, Gas & Harian Toko:</span>
-                          <span className="font-bold text-slate-900">{formatRupiah(cashExpense - 960000 - personalExpenseCash)}</span>
-                        </div>
-                        {personalExpenseCash > 0 && (
-                          <div className="flex justify-between text-purple-700 font-bold">
-                            <span>• Penarikan Pribadi (Prive):</span>
-                            <span>{formatRupiah(personalExpenseCash)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* ========================================================= */}
-              {/* KARTU KHUSUS: PENGELUARAN PRIBADI PEMILIK (PRIVE) */}
-              {/* ========================================================= */}
-              <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/50 p-5 rounded-2xl border-2 border-purple-300 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-purple-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2.5 bg-purple-600 text-white rounded-xl shadow-xs">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-purple-950 text-base sm:text-lg flex items-center gap-2">
-                        <span>Pengeluaran Pribadi Pemilik (Prive Mami Lina)</span>
-                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">
-                          {personalExpenseTxs.length} Transaksi
-                        </span>
-                      </h4>
-                      <p className="text-xs text-purple-800 font-medium">
-                        Penarikan dana keperluan pribadi Mami Lina dipisahkan dari biaya operasional toko agar laba toko tetap riil.
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleOpenTransactionModal('pengeluaran', 'penarikan_investor')}
-                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition active:scale-95 shadow-2xs"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>+ Catat Prive Baru</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div className="bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs">
-                    <span className="text-xs font-bold text-slate-500 uppercase block">Total Prive Pribadi</span>
-                    <span className="text-xl sm:text-2xl font-black text-purple-800 mt-0.5 block">{formatRupiah(totalPersonalExpense)}</span>
-                    <span className="text-[11px] text-purple-700 font-semibold block mt-0.5">{personalExpenseTxs.length} kali penarikan dana</span>
-                  </div>
-
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-                    <span className="text-xs font-bold text-slate-500 uppercase block">Dari Kasir Tunai Toko</span>
-                    <span className="text-lg sm:text-xl font-black text-slate-800 mt-0.5 block">{formatRupiah(personalExpenseCash)}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">Uang cash kasir</span>
-                  </div>
-
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-                    <span className="text-xs font-bold text-slate-500 uppercase block">Dari Rek. Laundry</span>
-                    <span className="text-lg sm:text-xl font-black text-slate-800 mt-0.5 block">{formatRupiah(personalExpenseRekLaundry)}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">Transfer Bank BCA</span>
-                  </div>
-
-                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-                    <span className="text-xs font-bold text-slate-500 uppercase block">Dari Rek. Reparasi</span>
-                    <span className="text-lg sm:text-xl font-black text-slate-800 mt-0.5 block">{formatRupiah(personalExpenseRekReparasi)}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">Transfer Bank BCA</span>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-purple-100/50 rounded-xl border border-purple-200 text-xs text-purple-900 font-semibold flex items-center justify-between">
-                  <span>💡 <strong>Laba Operasional Bersih Toko (Sebelum Prive):</strong> {formatRupiah(operationalProfit)}</span>
-                  <span><strong>Sisa Saldo Kas & Bank Riil:</strong> {formatRupiah(netBalance)}</span>
-                </div>
-              </div>
-
-              {/* Baris Akumulasi Global Ringkas */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Penerimaan (Semua)</span>
-                    <span className="text-xl sm:text-2xl font-black text-emerald-700">{formatRupiah(totalIncome)}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
-                      {allIncomeTxs.length} nota ({bankIncomeCount} transfer + {cashIncomeTxs.length} cash)
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
-                    {allIncomeTxs.length} Nota Terbayar
-                  </span>
-                </div>
-
-                <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-bold text-slate-600 uppercase block">Total Pengeluaran Toko Murni</span>
-                    <span className="text-xl sm:text-2xl font-black text-rose-700">{formatRupiah(totalOperationalExpense)}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
-                      Sewa, gaji, listrik, gas, servis
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
-                    Biaya Toko
-                  </span>
-                </div>
-
-                <div className="bg-slate-100/80 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-bold text-slate-600 uppercase block">Sisa Kas & Saldo Bank Riil</span>
-                    <span className="text-xl sm:text-2xl font-black text-sky-800">{formatRupiah(netBalance)}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
-                      Total kas masuk dikurangi seluruh pengeluaran
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
-                    Kas Bersih
-                  </span>
-                </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleOpenTransactionModal('pengeluaran', 'penarikan_investor')}
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black transition active:scale-95 shadow-2xs"
+                >
+                  <ArrowDownLeft className="w-4 h-4" />
+                  <span>+ Ambil Usaha (Debit)</span>
+                </button>
+                <button
+                  onClick={() => handleOpenTransactionModal('pengeluaran', 'pengeluaran_pribadi')}
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black transition active:scale-95 shadow-2xs"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>+ Belanja Pribadi (Kredit)</span>
+                </button>
               </div>
             </div>
+
+            {/* 3 Metrik Terpisah Dana Pribadi */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              
+              {/* Kolom 1: DEBIT (Dana Usaha Diambil) */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-amber-200 shadow-2xs space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-extrabold text-amber-900 uppercase tracking-wide flex items-center">
+                    <ArrowDownLeft className="w-4 h-4 mr-1 text-amber-600" />
+                    1. Uang Masuk Pribadi (DEBIT)
+                  </span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
+                    {priveDebitTxs.length} Transaksi
+                  </span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-amber-700">
+                  {formatRupiah(totalPriveDebit)}
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  Total dana yang ditarik dari kas/bank usaha toko untuk modal kantong pribadi Mami Lina.
+                </p>
+                <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-700 space-y-0.5 font-semibold">
+                  <div className="flex justify-between">
+                    <span>• Dari Rek. Reparasi:</span>
+                    <span>{formatRupiah(priveDebitRekReparasi)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>• Dari Rek. Laundry:</span>
+                    <span>{formatRupiah(priveDebitRekLaundry)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>• Dari Kasir Toko:</span>
+                    <span>{formatRupiah(priveDebitCash)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kolom 2: KREDIT (Pengeluaran Belanja Pribadi) */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-purple-200 shadow-2xs space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-extrabold text-purple-900 uppercase tracking-wide flex items-center">
+                    <ShoppingCart className="w-4 h-4 mr-1 text-purple-600" />
+                    2. Pengeluaran Pribadi (KREDIT)
+                  </span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-purple-900">
+                    {personalCreditTxs.length} Transaksi
+                  </span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-purple-700">
+                  {formatRupiah(totalPersonalCredit)}
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  Total belanja untuk kebutuhan pribadi Mami Lina (dapur, pakaian, anak, uang saku).
+                </p>
+                <div className="pt-2 border-t border-slate-100 text-[11px] text-purple-800 font-bold">
+                  🔒 Tidak memotong dana toko & tidak memotong margin usaha toko.
+                </div>
+              </div>
+
+              {/* Kolom 3: Sisa Saldo Dana Pribadi */}
+              <div className="bg-gradient-to-br from-purple-700 to-indigo-900 text-white p-4 sm:p-5 rounded-2xl shadow-2xs space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wide flex items-center">
+                    <Wallet className="w-4 h-4 mr-1 text-purple-300" />
+                    3. Sisa Saldo Pribadi Mami
+                  </span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
+                    Siap Pakai
+                  </span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white">
+                  {formatRupiah(personalBalance)}
+                </div>
+                <p className="text-xs text-purple-200 font-medium leading-relaxed">
+                  Sisa dana pribadi yang masih dipegang Mami Lina (Debit dikurangi Kredit belanja).
+                </p>
+                <div className="pt-2 border-t border-purple-500/40 text-[11px] text-purple-200 font-semibold flex justify-between">
+                  <span>Rumus:</span>
+                  <span>DEBIT ({formatRupiah(totalPriveDebit)}) - KREDIT ({formatRupiah(totalPersonalCredit)})</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Riwayat Transaksi Pribadi Mami Lina (Debit & Kredit) */}
+            <div className="bg-white rounded-2xl border border-purple-200 overflow-hidden">
+              <div className="p-4 bg-purple-50/70 border-b border-purple-100 flex justify-between items-center">
+                <span className="text-xs sm:text-sm font-black text-purple-950 uppercase tracking-wide flex items-center gap-1.5">
+                  <Receipt className="w-4 h-4 text-purple-600" />
+                  <span>Riwayat Aliran Kas Pribadi Mami Lina</span>
+                </span>
+                <span className="text-xs font-bold text-purple-800">
+                  Total {priveDebitTxs.length + personalCreditTxs.length} Catatan Pribadi
+                </span>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {priveDebitTxs.length === 0 && personalCreditTxs.length === 0 ? (
+                  <div className="p-6 text-center text-slate-500 text-xs font-semibold">
+                    Belum ada catatan mutasi dana pribadi. Gunakan tombol di atas untuk mencatat penarikan dari usaha atau belanja pribadi.
+                  </div>
+                ) : (
+                  [...priveDebitTxs, ...personalCreditTxs]
+                    .sort((a, b) => (b.transaction_date > a.transaction_date ? 1 : -1))
+                    .map((item) => {
+                      const isDebit = item.sub_category === 'penarikan_investor';
+                      return (
+                        <div key={item.id} className="p-3.5 sm:p-4 hover:bg-slate-50 flex justify-between items-center transition">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2 rounded-xl shrink-0 ${isDebit ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'}`}>
+                              {isDebit ? <ArrowDownLeft className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                  isDebit ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-purple-100 text-purple-900 border border-purple-300'
+                                }`}>
+                                  {isDebit ? 'Debit: Ambil Dana Usaha' : 'Kredit: Belanja Pribadi'}
+                                </span>
+                                <span className="text-xs font-semibold text-slate-500">
+                                  {formatDateIndo(item.transaction_date)}
+                                </span>
+                              </div>
+                              <div className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">
+                                {item.notes || (isDebit ? 'Penarikan dana usaha ke pribadi' : 'Belanja kebutuhan pribadi')}
+                              </div>
+                              {isDebit && (
+                                <div className="text-[11px] text-slate-500 font-medium">
+                                  Sumber: {item.bank_account === 'rekening_reparasi' ? 'Rekening Reparasi BCA' : item.bank_account === 'rekening_laundry' ? 'Rekening Laundry BCA' : 'Kasir Tunai Toko (Cash)'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className={`text-sm sm:text-base font-black ${isDebit ? 'text-amber-700' : 'text-purple-700'}`}>
+                              {isDebit ? '+' : '-'} {formatRupiah(item.amount)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+
           </div>
 
           {/* Revenue Chart */}

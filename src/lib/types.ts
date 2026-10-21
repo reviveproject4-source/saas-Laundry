@@ -18,7 +18,7 @@ export interface TenantProfile {
   created_at?: string;
 }
 
-export type BusinessUnit = 'laundry' | 'reparasi';
+export type BusinessUnit = 'laundry' | 'reparasi' | 'pribadi';
 
 export type BankAccount = 'rekening_laundry' | 'rekening_reparasi';
 
@@ -37,7 +37,8 @@ export type SubCategory =
   | 'detergen'
   | 'sewa_toko'
   | 'disetor_investor'
-  | 'penarikan_investor';
+  | 'penarikan_investor'
+  | 'pengeluaran_pribadi';
 
 export interface Transaction {
   id: string; // UUID from database

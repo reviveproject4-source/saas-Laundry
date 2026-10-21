@@ -3,7 +3,7 @@
 import React from 'react';
 import { Transaction, UserProfile, UserRole } from '@/lib/types';
 import { formatRupiah, formatDateIndo, getCategoryLabel } from '@/lib/formatters';
-import { Lock, Trash2, Banknote, CreditCard, UserCheck, ShieldCheck, User } from 'lucide-react';
+import { Lock, Trash2, Banknote, CreditCard, UserCheck, ShieldCheck, User, ArrowDownLeft, ShoppingCart } from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -29,7 +29,7 @@ export default function TransactionTable({
         <div>
           <h3 className="font-black text-slate-900 text-lg sm:text-xl">{title}</h3>
           <p className="text-sm font-semibold text-slate-600 mt-0.5">
-            Daftar seluruh riwayat transaksi keuangan outlet yang telah diverifikasi sistem.
+            Daftar seluruh riwayat transaksi keuangan yang tercatat di sistem.
           </p>
         </div>
         <span className="text-xs sm:text-sm bg-slate-100 px-3.5 py-1.5 rounded-full text-slate-700 font-bold border border-slate-200">
@@ -45,7 +45,7 @@ export default function TransactionTable({
               <th className="py-3.5 px-4">Diinput Oleh</th>
               <th className="py-3.5 px-4">Kategori & Catatan</th>
               <th className="py-3.5 px-4">Metode</th>
-              <th className="py-3.5 px-4">Jenis</th>
+              <th className="py-3.5 px-4">Jenis Aliran</th>
               <th className="py-3.5 px-4 text-right">Nominal</th>
               <th className="py-3.5 px-4 text-center">Aksi (Lock)</th>
             </tr>
@@ -59,12 +59,14 @@ export default function TransactionTable({
               </tr>
             ) : (
               transactions.map((tx) => {
-                // Rule: Editable if current user is the creator of this transaction
                 const isEditable = activeUserId
                   ? tx.created_by_user_id === activeUserId
                   : tx.creator_role === activeRole;
 
                 const isIncome = tx.type === 'penerimaan';
+                const isPriveTarik = tx.sub_category === 'penarikan_investor';
+                const isBelanjaPribadi = tx.sub_category === 'pengeluaran_pribadi';
+                const isSetoran = tx.sub_category === 'disetor_investor';
 
                 return (
                   <tr key={tx.id} className="hover:bg-slate-50 transition">
@@ -86,7 +88,7 @@ export default function TransactionTable({
                         {tx.creator_role === 'investor' ? (
                           <>
                             <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
-                            {tx.creator_name || 'Investor'}
+                            {tx.creator_name || 'Pemilik Mami Lina'}
                           </>
                         ) : (
                           <>
@@ -105,7 +107,7 @@ export default function TransactionTable({
                             {tx.bank_account === 'rekening_laundry' ? 'Rekening Laundry' : 'Rekening Reparasi'}
                           </span>
                         )}
-                        {tx.business_unit && (
+                        {tx.business_unit && tx.business_unit !== 'pribadi' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-purple-50 text-purple-800 border border-purple-300">
                             {tx.business_unit === 'laundry' ? 'Unit Laundry' : 'Unit Reparasi'}
                           </span>
@@ -115,14 +117,20 @@ export default function TransactionTable({
                             {tx.cost_type === 'fixed_cost' ? 'Fixed Cost' : 'Variable Cost'}
                           </span>
                         )}
-                        {tx.sub_category === 'disetor_investor' ? (
+
+                        {isSetoran ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
                             ⭐ Setoran Target Investor
                           </span>
-                        ) : tx.sub_category === 'penarikan_investor' ? (
+                        ) : isPriveTarik ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
+                            <ArrowDownLeft className="w-3.5 h-3.5 mr-1 text-amber-700" />
+                            Ambil Dana Usaha (Debit)
+                          </span>
+                        ) : isBelanjaPribadi ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-purple-100 text-purple-950 border border-purple-400 shadow-2xs">
-                            <User className="w-3 h-3 mr-1 text-purple-700" />
-                            Pengeluaran Pribadi (Prive)
+                            <ShoppingCart className="w-3.5 h-3.5 mr-1 text-purple-700" />
+                            Belanja Pribadi (Kredit)
                           </span>
                         ) : tx.sub_category ? (
                           <span className="font-bold text-slate-800 text-xs sm:text-sm">
@@ -136,7 +144,12 @@ export default function TransactionTable({
                     {/* Payment Method */}
                     <td className="py-4 px-4 whitespace-nowrap">
                       <span className="inline-flex items-center space-x-1.5 bg-slate-100 text-slate-800 font-semibold px-2.5 py-1 rounded text-xs">
-                        {tx.payment_method === 'cash' ? (
+                        {isBelanjaPribadi ? (
+                          <>
+                            <User className="w-3.5 h-3.5 text-purple-600" />
+                            <span>Kantong Pribadi</span>
+                          </>
+                        ) : tx.payment_method === 'cash' ? (
                           <>
                             <Banknote className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Cash</span>
@@ -156,23 +169,33 @@ export default function TransactionTable({
                         className={`font-bold px-2.5 py-1 rounded text-xs ${
                           isIncome
                             ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                            : tx.sub_category === 'penarikan_investor'
-                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                            : isPriveTarik
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            : isBelanjaPribadi
+                            ? 'bg-purple-100 text-purple-900 border border-purple-300'
                             : 'bg-rose-100 text-rose-900 border border-rose-200'
                         }`}
                       >
                         {isIncome
-                          ? 'Penerimaan'
-                          : tx.sub_category === 'penarikan_investor'
-                          ? 'Prive (Pribadi)'
-                          : 'Pengeluaran'}
+                          ? 'Penerimaan Usaha'
+                          : isPriveTarik
+                          ? 'Debit Pribadi (Tarik Usaha)'
+                          : isBelanjaPribadi
+                          ? 'Kredit Pribadi (Belanja)'
+                          : 'Biaya Toko'}
                       </span>
                     </td>
 
                     {/* Amount */}
                     <td
                       className={`py-4 px-4 text-right font-black text-base whitespace-nowrap ${
-                        isIncome ? 'text-emerald-700' : tx.sub_category === 'penarikan_investor' ? 'text-purple-700' : 'text-rose-700'
+                        isIncome
+                          ? 'text-emerald-700'
+                          : isPriveTarik
+                          ? 'text-amber-700'
+                          : isBelanjaPribadi
+                          ? 'text-purple-700'
+                          : 'text-rose-700'
                       }`}
                     >
                       {isIncome ? '+' : '-'} {formatRupiah(tx.amount)}
