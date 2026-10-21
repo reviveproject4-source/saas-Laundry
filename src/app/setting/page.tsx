@@ -127,9 +127,9 @@ export default function SettingPage() {
             {/* Profil Outlet */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
-                <div className="w-12 h-12 bg-amber-50 rounded-xl border border-amber-200 p-1 flex justify-center items-center shrink-0">
+                <div className="w-12 h-12 bg-white rounded-xl border border-slate-200 p-1 flex justify-center items-center shrink-0">
                   <img
-                    src="/logo.png"
+                    src="/dompetku-logo.jpg"
                     alt="Trio R Logo"
                     width={44}
                     height={44}
@@ -243,3 +243,4 @@ export default function SettingPage() {
     </div>
   );
 }
+

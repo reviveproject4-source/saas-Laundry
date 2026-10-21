@@ -1,0 +1,16 @@
+{
+  "name": "Dompetku - Kelola Keuangan",
+  "short_name": "Dompetku",
+  "description": "Saas khusus tuk keuangan pemilik usaha",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d2a63",
+  "icons": [
+    {
+      "src": "/dompetku-logo.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

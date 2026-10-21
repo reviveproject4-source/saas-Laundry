@@ -3,9 +3,13 @@ import type { Metadata, Viewport } from 'next';
 import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
-  title: 'SaaS Keuangan Laundry - Portal Pemilik',
-  description: 'Sistem Informasi Keuangan Laundry Khusus Pemilik (Trio R)',
+  title: 'Dompetku - Kelola Keuangan | SaaS Khusus Keuangan Pemilik Usaha',
+  description: 'Dompetku: Saas khusus tuk keuangan pemilik usaha',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/dompetku-logo.jpg',
+    apple: '/dompetku-logo.jpg',
+  },
 };
 
 export const viewport: Viewport = {

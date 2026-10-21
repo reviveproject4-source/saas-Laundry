@@ -372,7 +372,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="text-sm font-semibold text-slate-600 mt-1">
-                SaaS Keuangan Pribadi: Pengendalian Dana Usaha Toko Trio R & Buku Arus Kas Pribadi.
+                Dompetku - Kelola Keuangan: Saas khusus tuk keuangan pemilik usaha.
               </p>
             </div>
 

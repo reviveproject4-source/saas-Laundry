@@ -41,18 +41,25 @@ export default function LoginPage() {
         
         {/* Logo Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex justify-center items-center w-20 h-20 bg-amber-50 rounded-2xl shadow-sm border border-amber-200 p-1 mb-1">
+          <div className="inline-flex justify-center items-center w-24 h-24 bg-white rounded-3xl shadow-sm border border-slate-200 p-2 mb-1">
             <img
-              src="/logo.png"
-              alt="Trio R Healthy Laundry Logo"
-              width={72}
-              height={72}
-              style={{ maxWidth: '72px', maxHeight: '72px', width: 'auto', height: 'auto', objectFit: 'contain' }}
+              src="/dompetku-logo.jpg"
+              alt="Logo Dompetku"
+              width={88}
+              height={88}
+              style={{ maxWidth: '88px', maxHeight: '88px', width: 'auto', height: 'auto', objectFit: 'contain' }}
               className="object-contain"
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Trio R Healthy Laundry</h1>
-          <p className="text-sm font-semibold text-slate-600">Sistem Informasi Keuangan Khusus Pemilik</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <span className="text-[#0d2a63]">Dompet</span><span className="text-[#e89005]">ku</span>
+          </h1>
+          <div>
+            <span className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-bold">
+              Kelola Keuangan
+            </span>
+          </div>
+          <p className="text-xs font-medium text-slate-500">Saas khusus tuk keuangan pemilik usaha</p>
         </div>
 
         {/* Error Alert */}
@@ -101,13 +108,16 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full flex items-center justify-center space-x-2 py-3.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm sm:text-base rounded-2xl shadow-md transition active:scale-98 disabled:opacity-50"
+            className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-extrabold rounded-2xl transition flex items-center justify-center space-x-2 shadow-md shadow-sky-600/25 disabled:opacity-50"
           >
             {submitting ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Memproses...</span>
+              </>
             ) : (
               <>
-                <span>Masuk ke Akun</span>
+                <span>Masuk ke Dompetku</span>
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
@@ -117,7 +127,7 @@ export default function LoginPage() {
         {/* Security Note */}
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center space-x-2.5 text-xs text-slate-600 font-medium">
           <Lock className="w-4 h-4 text-sky-600 shrink-0" />
-          <span>Portal Resmi Khusus Pemilik (Investor) Trio R Healthy Laundry.</span>
+          <span>Portal Resmi Dompetku • Khusus Keuangan Pemilik Usaha.</span>
         </div>
 
       </div>
