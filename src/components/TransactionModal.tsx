@@ -1,45 +1,49 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  TransactionType, 
-  SubCategory, 
-  BankAccount, 
-  BusinessUnit, 
-  CostType, 
-  UserProfile, 
+import {
+  Transaction,
+  TransactionType,
+  SubCategory,
+  BankAccount,
+  CostType,
+  BusinessUnit,
+  UserProfile,
   PersonalCategory,
-  PERSONAL_CATEGORIES 
+  PERSONAL_CATEGORIES,
 } from '@/lib/types';
 import { createTransactionInSupabase } from '@/lib/transactions';
 import { formatRupiah, getPersonalCategoryLabel } from '@/lib/formatters';
-import { 
-  X, 
-  ArrowDownLeft, 
-  ArrowUpRight, 
-  Building2, 
-  Wrench, 
-  Banknote, 
-  CreditCard, 
-  Calendar, 
-  ShoppingBag, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  X,
+  PlusCircle,
+  Building2,
+  Wrench,
+  Banknote,
+  Calendar,
+  AlertCircle,
   Loader2,
-  Wallet
+  CheckCircle2,
+  CreditCard,
+  ShoppingBag,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Wallet,
+  PiggyBank,
 } from 'lucide-react';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (newTx: any) => void;
-  userProfile?: UserProfile | null;
+  onSuccess: (newTx: Transaction) => void;
+  userProfile: UserProfile | null;
   defaultType?: TransactionType;
   defaultSubCategory?: SubCategory;
 }
 
 type WalletChoice = 'rekening_laundry' | 'rekening_reparasi' | 'kasir_tunai';
-type ExpenseGoal = 'belanja_qris' | 'operasional' | 'ambil_usaha' | 'belanja_mandiri' | 'setoran';
+type ExpenseGoal = 'belanja_pribadi' | 'operasional' | 'tarik_tunai' | 'setoran';
+type PersonalPaymentSource = 'cash_pribadi' | 'qris' | 'kasir_toko';
 
 export default function TransactionModal({
   isOpen,
@@ -62,13 +66,14 @@ export default function TransactionModal({
   const [type, setType] = useState<TransactionType>(defaultType);
   const [date, setDate] = useState<string>(todayStr);
 
-  // Field Dompet
+  // Field Dompet Usaha
   const [wallet, setWallet] = useState<WalletChoice>('rekening_laundry');
   const [reference, setReference] = useState<string>('');
 
   // Field khusus Pengeluaran
-  const [expenseGoal, setExpenseGoal] = useState<ExpenseGoal>('belanja_qris');
+  const [expenseGoal, setExpenseGoal] = useState<ExpenseGoal>('belanja_pribadi');
   const [personalCategory, setPersonalCategory] = useState<PersonalCategory>('belanja');
+  const [personalSource, setPersonalSource] = useState<PersonalPaymentSource>('cash_pribadi');
   const [businessUnit, setBusinessUnit] = useState<BusinessUnit>('laundry');
   const [costType, setCostType] = useState<CostType>('variable_cost');
 
@@ -84,16 +89,18 @@ export default function TransactionModal({
       if (defaultSubCategory === 'disetor_investor') {
         setExpenseGoal('setoran');
       } else if (defaultSubCategory === 'penarikan_investor') {
-        setExpenseGoal('ambil_usaha');
+        setExpenseGoal('tarik_tunai');
       } else if (defaultSubCategory === 'operasional') {
         setExpenseGoal('operasional');
       } else if (defaultSubCategory === 'pengeluaran_pribadi') {
-        setExpenseGoal('belanja_qris');
+        setExpenseGoal('belanja_pribadi');
+        setPersonalSource('cash_pribadi');
       } else {
-        setExpenseGoal('belanja_qris');
+        setExpenseGoal('belanja_pribadi');
       }
       setWallet('rekening_laundry');
       setPersonalCategory('belanja');
+      setPersonalSource('cash_pribadi');
       setRawAmount('');
       setNotes('');
       setReference('');
@@ -126,7 +133,6 @@ export default function TransactionModal({
       return;
     }
 
-    // Biaya operasional wajib isi keterangan
     if (type === 'pengeluaran' && expenseGoal === 'operasional' && !notes.trim()) {
       setErrorMessage('Harap isi keterangan pengeluaran toko.');
       return;
@@ -142,15 +148,22 @@ export default function TransactionModal({
         combinedNotes = reference.trim()
           ? reference.trim() + (notes.trim() ? ` - ${notes.trim()}` : '')
           : notes.trim();
-      } else if (expenseGoal === 'belanja_qris') {
-        const prefix = wallet === 'kasir_tunai' ? `[Kas Toko | ${catLabel}]` : `[QRIS | ${catLabel}]`;
-        combinedNotes = notes.trim() ? `${prefix} ${notes.trim()}` : prefix;
-      } else if (expenseGoal === 'belanja_mandiri') {
-        combinedNotes = notes.trim() ? `[${catLabel}] ${notes.trim()}` : `[${catLabel}]`;
+      } else if (expenseGoal === 'belanja_pribadi') {
+        if (personalSource === 'cash_pribadi') {
+          const prefix = `[Cash ATM | ${catLabel}]`;
+          combinedNotes = notes.trim() ? `${prefix} ${notes.trim()}` : prefix;
+        } else if (personalSource === 'kasir_toko') {
+          const prefix = `[Kasir Toko | ${catLabel}]`;
+          combinedNotes = notes.trim() ? `${prefix} ${notes.trim()}` : prefix;
+        } else {
+          const bankName = wallet === 'rekening_reparasi' ? 'Reparasi' : 'Laundry';
+          const prefix = `[QRIS ${bankName} | ${catLabel}]`;
+          combinedNotes = notes.trim() ? `${prefix} ${notes.trim()}` : prefix;
+        }
       } else if (expenseGoal === 'setoran') {
         combinedNotes = notes.trim() || 'Setoran Target Bulanan ke Investor';
-      } else if (expenseGoal === 'ambil_usaha') {
-        combinedNotes = notes.trim() || 'Tarik Dana Usaha ke Kantong Pribadi';
+      } else if (expenseGoal === 'tarik_tunai') {
+        combinedNotes = notes.trim() ? `[Tarik Tunai] ${notes.trim()}` : '[Tarik Tunai ATM/Kas]';
       }
 
       const isReparasi = wallet === 'rekening_reparasi' || (isCash && businessUnit === 'reparasi');
@@ -166,15 +179,31 @@ export default function TransactionModal({
       } else if (expenseGoal === 'setoran') {
         computedSubCategory = 'disetor_investor';
         targetBusinessUnit = 'laundry';
-      } else if (expenseGoal === 'belanja_qris') {
+      } else if (expenseGoal === 'belanja_pribadi') {
+        if (personalSource === 'cash_pribadi') {
+          // Uang tunai yang sudah ditarik sebelumnya ke dompet pemilik -> tidak memotong toko lagi!
+          computedSubCategory = 'pengeluaran_pribadi';
+          paymentMethod = 'cash';
+          bankAccount = null;
+          targetBusinessUnit = 'pribadi';
+        } else if (personalSource === 'kasir_toko') {
+          // Ambil tunai langsung dari kasir toko saat belanja
+          computedSubCategory = 'penarikan_investor';
+          paymentMethod = 'cash';
+          bankAccount = null;
+          targetBusinessUnit = 'laundry';
+        } else {
+          // Pakai QRIS / Debit langsung dari rekening toko
+          computedSubCategory = 'penarikan_investor';
+          paymentMethod = 'transfer';
+          bankAccount = wallet === 'rekening_reparasi' ? 'rekening_reparasi' : 'rekening_laundry';
+          targetBusinessUnit = wallet === 'rekening_reparasi' ? 'reparasi' : 'laundry';
+        }
+      } else if (expenseGoal === 'tarik_tunai') {
         computedSubCategory = 'penarikan_investor';
-      } else if (expenseGoal === 'ambil_usaha') {
-        computedSubCategory = 'penarikan_investor';
-      } else if (expenseGoal === 'belanja_mandiri') {
-        computedSubCategory = 'pengeluaran_pribadi';
-        paymentMethod = 'cash';
-        bankAccount = null;
-        targetBusinessUnit = 'pribadi';
+        paymentMethod = isCash ? 'cash' : 'transfer';
+        bankAccount = isCash ? null : (wallet === 'rekening_reparasi' ? 'rekening_reparasi' : 'rekening_laundry');
+        targetBusinessUnit = isReparasi ? 'reparasi' : 'laundry';
       } else {
         computedSubCategory = 'operasional';
         finalCostType = costType;
@@ -219,40 +248,38 @@ export default function TransactionModal({
 
   const modalTitle =
     type === 'penerimaan'
-      ? 'Catat Penerimaan Uang'
+      ? 'Catat Pemasukkan'
+      : expenseGoal === 'belanja_pribadi'
+      ? 'Pengeluaran Pribadi'
+      : expenseGoal === 'tarik_tunai'
+      ? 'Tarik Kas / ATM'
       : expenseGoal === 'setoran'
       ? 'Setoran Target Bulanan'
-      : expenseGoal === 'belanja_qris'
-      ? 'Belanja Pribadi (QRIS / Toko)'
-      : expenseGoal === 'ambil_usaha'
-      ? 'Tarik Kas ke Kantong Pribadi'
-      : expenseGoal === 'belanja_mandiri'
-      ? 'Belanja Pribadi (Uang Sendiri)'
-      : 'Catat Biaya Operasional Toko';
+      : 'Biaya Toko (Operasional)';
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
       <div className="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden my-4 max-h-[92vh] flex flex-col">
         
-        {/* Header Modal - Clean & Minimal */}
+        {/* Header Modal */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
           <div className="flex items-center space-x-2.5">
             <div
               className={`p-2 rounded-xl ${
                 type === 'penerimaan'
                   ? 'bg-emerald-100 text-emerald-800'
-                  : expenseGoal === 'belanja_qris'
+                  : expenseGoal === 'belanja_pribadi'
                   ? 'bg-purple-100 text-purple-800'
-                  : expenseGoal === 'ambil_usaha'
+                  : expenseGoal === 'tarik_tunai'
                   ? 'bg-amber-100 text-amber-800'
                   : 'bg-rose-100 text-rose-800'
               }`}
             >
               {type === 'penerimaan' ? (
                 <ArrowDownLeft className="w-5 h-5" />
-              ) : expenseGoal === 'belanja_qris' ? (
+              ) : expenseGoal === 'belanja_pribadi' ? (
                 <CreditCard className="w-5 h-5" />
-              ) : expenseGoal === 'ambil_usaha' ? (
+              ) : expenseGoal === 'tarik_tunai' ? (
                 <ArrowDownLeft className="w-5 h-5" />
               ) : (
                 <ShoppingBag className="w-5 h-5" />
@@ -281,7 +308,7 @@ export default function TransactionModal({
             </div>
           )}
 
-          {/* Toggle Tab: Penerimaan vs Pengeluaran */}
+          {/* Toggle Tab: Pemasukkan vs Pengeluaran */}
           <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
             <button
               type="button"
@@ -296,7 +323,7 @@ export default function TransactionModal({
               }`}
             >
               <ArrowDownLeft className="w-4 h-4" />
-              <span>Penerimaan</span>
+              <span>Pemasukkan</span>
             </button>
             <button
               type="button"
@@ -322,15 +349,15 @@ export default function TransactionModal({
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setExpenseGoal('belanja_qris')}
+                  onClick={() => setExpenseGoal('belanja_pribadi')}
                   className={`p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center justify-center ${
-                    expenseGoal === 'belanja_qris'
+                    expenseGoal === 'belanja_pribadi'
                       ? 'border-purple-600 bg-purple-50 text-purple-950 font-black ring-2 ring-purple-500'
                       : 'border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
                   }`}
                 >
                   <CreditCard className="w-4 h-4 text-purple-600 mb-1" />
-                  <span className="text-xs">Belanja QRIS</span>
+                  <span className="text-xs">Belanja Pribadi</span>
                 </button>
 
                 <button
@@ -348,49 +375,154 @@ export default function TransactionModal({
 
                 <button
                   type="button"
-                  onClick={() => setExpenseGoal('ambil_usaha')}
+                  onClick={() => setExpenseGoal('tarik_tunai')}
                   className={`p-2.5 rounded-xl border-2 text-center transition flex flex-col items-center justify-center ${
-                    expenseGoal === 'ambil_usaha'
+                    expenseGoal === 'tarik_tunai'
                       ? 'border-amber-600 bg-amber-50 text-amber-950 font-black ring-2 ring-amber-500'
                       : 'border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
                   }`}
                 >
                   <ArrowDownLeft className="w-4 h-4 text-amber-600 mb-1" />
-                  <span className="text-xs">Tarik Tunai</span>
+                  <span className="text-xs">Tarik Kas/ATM</span>
                 </button>
               </div>
 
-              {/* 6 KATEGORI PENGELUARAN PRIBADI */}
-              {(expenseGoal === 'belanja_qris' || expenseGoal === 'belanja_mandiri') && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Kategori Pengeluaran Pribadi
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {PERSONAL_CATEGORIES.map((cat) => (
+              {/* 7 KATEGORI PENGELUARAN PRIBADI */}
+              {expenseGoal === 'belanja_pribadi' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Kategori Pengeluaran Pribadi
+                    </label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {PERSONAL_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setPersonalCategory(cat.id)}
+                          className={`py-2 px-2 rounded-xl border transition flex items-center justify-center space-x-1.5 ${
+                            personalCategory === cat.id
+                              ? 'border-purple-600 bg-purple-100/90 text-purple-950 font-black ring-2 ring-purple-500 shadow-2xs'
+                              : 'border-slate-200 bg-slate-50/80 text-slate-700 hover:bg-slate-100 font-semibold'
+                          }`}
+                        >
+                          <span className="text-sm">{cat.icon}</span>
+                          <span className="text-[11px] truncate">{cat.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* PILIHAN METODE / SUMBER DANA PENGELUARAN PRIBADI */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Sumber Pembayaran Belanja
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Opsi 1: Cash Pribadi (Tarik ATM / Rekening) */}
                       <button
-                        key={cat.id}
                         type="button"
-                        onClick={() => setPersonalCategory(cat.id)}
-                        className={`py-2 px-2 rounded-xl border transition flex items-center justify-center space-x-1.5 ${
-                          personalCategory === cat.id
-                            ? 'border-purple-600 bg-purple-100/80 text-purple-950 font-black ring-2 ring-purple-500 shadow-2xs'
-                            : 'border-slate-200 bg-slate-50/80 text-slate-700 hover:bg-slate-100 font-semibold'
+                        onClick={() => setPersonalSource('cash_pribadi')}
+                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                          personalSource === 'cash_pribadi'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-black ring-2 ring-emerald-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
                         }`}
                       >
-                        <span className="text-sm">{cat.icon}</span>
-                        <span className="text-[11px] truncate">{cat.label}</span>
+                        <Banknote className="w-4 h-4 text-emerald-600 mb-1" />
+                        <span className="text-xs leading-tight">Cash Pribadi</span>
+                        <span className="text-[9px] text-emerald-800 font-medium mt-0.5">Tarik ATM/Kas</span>
                       </button>
-                    ))}
+
+                      {/* Opsi 2: QRIS / Debit Bank Toko */}
+                      <button
+                        type="button"
+                        onClick={() => setPersonalSource('qris')}
+                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                          personalSource === 'qris'
+                            ? 'border-purple-600 bg-purple-50 text-purple-950 font-black ring-2 ring-purple-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4 text-purple-600 mb-1" />
+                        <span className="text-xs leading-tight">QRIS Toko</span>
+                        <span className="text-[9px] text-purple-800 font-medium mt-0.5">Rekening Bank</span>
+                      </button>
+
+                      {/* Opsi 3: Kasir Tunai Toko */}
+                      <button
+                        type="button"
+                        onClick={() => setPersonalSource('kasir_toko')}
+                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
+                          personalSource === 'kasir_toko'
+                            ? 'border-amber-600 bg-amber-50 text-amber-950 font-black ring-2 ring-amber-500'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
+                        }`}
+                      >
+                        <ShoppingBag className="w-4 h-4 text-amber-600 mb-1" />
+                        <span className="text-xs leading-tight">Kasir Toko</span>
+                        <span className="text-[9px] text-amber-800 font-medium mt-0.5">Laci Tunai</span>
+                      </button>
+                    </div>
+
+                    {/* Penjelasan Ringkas Status Pemotongan Saldo */}
+                    {personalSource === 'cash_pribadi' ? (
+                      <div className="mt-2 p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 font-semibold flex items-center space-x-1.5">
+                        <span>💵</span>
+                        <span>
+                          Menggunakan uang tunai yang sudah ditarik sebelumnya. <strong>Tidak memotong rekening/kasir toko lagi</strong>.
+                        </span>
+                      </div>
+                    ) : personalSource === 'qris' ? (
+                      <div className="mt-2 p-2.5 bg-purple-50/80 border border-purple-200 rounded-xl text-[11px] text-purple-900 font-semibold">
+                        <div className="flex items-center space-x-1.5 mb-2">
+                          <span>💳</span>
+                          <span>Pilih rekening toko yang dipotong via QRIS / Debit:</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setWallet('rekening_laundry')}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-black border transition ${
+                              wallet === 'rekening_laundry'
+                                ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                                : 'bg-white text-purple-900 border-purple-200 hover:bg-purple-100/50'
+                            }`}
+                          >
+                            BCA Laundry
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setWallet('rekening_reparasi')}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-black border transition ${
+                              wallet === 'rekening_reparasi'
+                                ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
+                                : 'bg-white text-purple-900 border-purple-200 hover:bg-purple-100/50'
+                            }`}
+                          >
+                            BCA Reparasi
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-2 p-2.5 bg-amber-50/80 border border-amber-200 rounded-xl text-[11px] text-amber-900 font-semibold flex items-center space-x-1.5">
+                        <span>🏪</span>
+                        <span>
+                          Uang diambil langsung dari laci kasir tunai toko saat berbelanja.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* SUMBER DANA USAHA (Toko) */}
-              {expenseGoal !== 'belanja_mandiri' && expenseGoal !== 'setoran' && (
+              {/* SUMBER DANA TARIK KAS/ATM ATAU BIAYA TOKO */}
+              {(expenseGoal === 'tarik_tunai' || expenseGoal === 'operasional') && (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    {expenseGoal === 'belanja_qris' ? 'Rekening QRIS / Dompet Usaha' : 'Sumber Rekening Toko'}
+                    {expenseGoal === 'tarik_tunai'
+                      ? 'Tarik Dari Rekening / Kas Toko'
+                      : 'Sumber Rekening Pembayaran Biaya'}
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
@@ -434,19 +566,6 @@ export default function TransactionModal({
                   </div>
                 </div>
               )}
-
-              {/* Sub-toggle belanja pakai uang sendiri di luar toko */}
-              <div className="text-right">
-                <button
-                  type="button"
-                  onClick={() => setExpenseGoal(expenseGoal === 'belanja_mandiri' ? 'belanja_qris' : 'belanja_mandiri')}
-                  className="text-[11px] font-bold text-slate-500 hover:text-purple-700 underline"
-                >
-                  {expenseGoal === 'belanja_mandiri'
-                    ? '← Kembali ke Belanja QRIS / Toko'
-                    : 'Belanja pakai uang pribadi sendiri? Klik di sini.'}
-                </button>
-              </div>
 
               {/* Jenis Beban Biaya Toko (Khusus Operasional) */}
               {expenseGoal === 'operasional' && (
@@ -558,7 +677,15 @@ export default function TransactionModal({
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Metode</label>
                 <div className="px-3 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 truncate">
-                  {wallet === 'kasir_tunai' ? '💵 Cash' : '💳 QRIS / Transfer'}
+                  {expenseGoal === 'belanja_pribadi'
+                    ? personalSource === 'cash_pribadi'
+                      ? '💵 Cash Pribadi'
+                      : personalSource === 'qris'
+                      ? '💳 QRIS Toko'
+                      : '🏪 Kasir Toko'
+                    : wallet === 'kasir_tunai'
+                    ? '💵 Kasir Tunai'
+                    : '💳 Transfer Bank'}
                 </div>
               </div>
             )}
@@ -596,10 +723,12 @@ export default function TransactionModal({
             <input
               type="text"
               placeholder={
-                expenseGoal === 'belanja_qris' || expenseGoal === 'belanja_mandiri'
+                expenseGoal === 'belanja_pribadi'
                   ? 'Contoh: Belanja di Supermarket / Toko'
                   : expenseGoal === 'operasional'
                   ? 'Contoh: Deterjen cair / Servis dinamo'
+                  : expenseGoal === 'tarik_tunai'
+                  ? 'Contoh: Tarik tunai ATM BCA'
                   : 'Catatan tambahan...'
               }
               value={notes}
@@ -616,9 +745,9 @@ export default function TransactionModal({
               className={`w-full py-3 text-white font-extrabold rounded-2xl transition flex items-center justify-center space-x-2 shadow-md disabled:opacity-50 ${
                 type === 'penerimaan'
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
-                  : expenseGoal === 'belanja_qris'
+                  : expenseGoal === 'belanja_pribadi'
                   ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/25'
-                  : expenseGoal === 'ambil_usaha'
+                  : expenseGoal === 'tarik_tunai'
                   ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/25'
                   : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
               }`}

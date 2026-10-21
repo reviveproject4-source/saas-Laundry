@@ -207,7 +207,8 @@ export default function DashboardPage() {
   // Transaksi belanja langsung dari toko (QRIS / Belanja Toko)
   const storeDirectSpentTxs = priveDebitTxs.filter((t) => {
     const note = (t.notes || '').toLowerCase();
-    return note.includes('belanja') || note.includes('qris') || !note.includes('tarik dana usaha ke kantong');
+    // Direct store spent: QRIS or belanja langsung dari kasir, exclude pure cash withdrawals
+    return (note.includes('belanja') || note.includes('qris') || note.includes('kasir toko')) && !note.includes('tarik');
   });
   const totalStoreDirectSpent = storeDirectSpentTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
@@ -879,7 +880,7 @@ export default function DashboardPage() {
                   className="flex items-center space-x-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black transition active:scale-95 shadow-2xs"
                 >
                   <ArrowDownLeft className="w-4 h-4" />
-                  <span>+ Ambil Usaha (Debit)</span>
+                  <span>+ Tarik Kas/ATM (Debit)</span>
                 </button>
                 <button
                   onClick={() => handleOpenTransactionModal('pengeluaran', 'pengeluaran_pribadi')}
@@ -998,14 +999,14 @@ export default function DashboardPage() {
                                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
                                   isDebit ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-purple-100 text-purple-900 border border-purple-300'
                                 }`}>
-                                  {isDebit ? 'Debit: Ambil Dana Usaha' : 'Kredit: Belanja Pribadi'}
+                                  {isDebit ? 'Debit: Tarik Kas/ATM' : 'Kredit: Belanja Pribadi'}
                                 </span>
                                 <span className="text-xs font-semibold text-slate-500">
                                   {formatDateIndo(item.transaction_date)}
                                 </span>
                               </div>
                               <div className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">
-                                {item.notes || (isDebit ? 'Penarikan dana usaha ke pribadi' : 'Belanja kebutuhan pribadi')}
+                                {item.notes || (isDebit ? 'Penarikan kas ke pribadi' : 'Belanja kebutuhan pribadi')}
                               </div>
                               {isDebit && (
                                 <div className="text-[11px] text-slate-500 font-medium">

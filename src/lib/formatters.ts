@@ -29,7 +29,7 @@ export function getCategoryLabel(subCategory?: string | null): string {
     detergen: 'Pembelian Detergen/Sabun',
     sewa_toko: 'Pembayaran Sewa Toko',
     disetor_investor: 'Dana Disetor ke Investor',
-    penarikan_investor: 'Ambil Dana Usaha (Debit Pribadi)',
+    penarikan_investor: 'Uang Masuk Pribadi (Debit)',
     pengeluaran_pribadi: 'Pengeluaran Pribadi (Kredit)',
   };
   return map[subCategory] || subCategory;
@@ -37,6 +37,7 @@ export function getCategoryLabel(subCategory?: string | null): string {
 
 export function parsePersonalCategory(notes?: string | null, subCategory?: string | null): PersonalCategory {
   const text = `${notes || ''} ${subCategory || ''}`.toLowerCase();
+  if (text.includes('tabungan') || text.includes('menabung') || text.includes('tabung') || text.includes('investasi') || text.includes('simpanan')) return 'tabungan';
   if (text.includes('bahan makanan') || text.includes('bahan_makanan') || text.includes('sayur') || text.includes('beras') || text.includes('pasar') || text.includes('dapur')) return 'bahan_makanan';
   if (text.includes('makanan') || text.includes('makan') || text.includes('jajan') || text.includes('resto') || text.includes('gofood') || text.includes('kopi')) return 'makanan';
   if (text.includes('listrik') || text.includes('kuota') || text.includes('pulsa') || text.includes('pln') || text.includes('internet')) return 'listrik_kuota';
@@ -53,6 +54,7 @@ export function getPersonalCategoryLabel(category: PersonalCategory): string {
     donasi: 'Donasi',
     belanja: 'Belanja',
     bensin: 'Bensin',
+    tabungan: 'Tabungan',
   };
   return map[category] || 'Belanja';
 }
@@ -65,6 +67,7 @@ export function getPersonalCategoryIcon(category: PersonalCategory): string {
     donasi: '🤲',
     belanja: '🛍️',
     bensin: '⛽',
+    tabungan: '💰',
   };
   return map[category] || '🛍️';
 }

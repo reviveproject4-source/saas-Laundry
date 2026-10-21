@@ -11,13 +11,16 @@ interface PersonalExpenseChartProps {
 
 export default function PersonalExpenseChart({ transactions }: PersonalExpenseChartProps) {
   // Filter all personal expenses (either from store accounts or independent)
-  const personalTxs = transactions.filter(
-    (t) =>
-      t.type === 'pengeluaran' &&
-      (t.sub_category === 'pengeluaran_pribadi' ||
-        (t.sub_category === 'penarikan_investor' &&
-          !(t.notes || '').toLowerCase().includes('tarik dana usaha ke kantong')))
-  );
+  const personalTxs = transactions.filter((t) => {
+    if (t.type !== 'pengeluaran') return false;
+    if (t.sub_category === 'pengeluaran_pribadi') return true;
+    if (t.sub_category === 'penarikan_investor') {
+      const note = (t.notes || '').toLowerCase();
+      // Only include direct spending (QRIS / Belanja Langsung Toko), exclude pure cash withdrawals
+      return note.includes('belanja') || note.includes('qris') || !note.includes('tarik');
+    }
+    return false;
+  });
 
   const totalPersonal = personalTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
@@ -29,12 +32,15 @@ export default function PersonalExpenseChart({ transactions }: PersonalExpenseCh
     donasi: { amount: 0, count: 0 },
     belanja: { amount: 0, count: 0 },
     bensin: { amount: 0, count: 0 },
+    tabungan: { amount: 0, count: 0 },
   };
 
   personalTxs.forEach((tx) => {
     const cat = parsePersonalCategory(tx.notes, tx.sub_category);
-    categoryTotals[cat].amount += Number(tx.amount || 0);
-    categoryTotals[cat].count += 1;
+    if (categoryTotals[cat]) {
+      categoryTotals[cat].amount += Number(tx.amount || 0);
+      categoryTotals[cat].count += 1;
+    }
   });
 
   const categoryColors: Record<PersonalCategory, { bar: string; badge: string; text: string }> = {
@@ -44,6 +50,7 @@ export default function PersonalExpenseChart({ transactions }: PersonalExpenseCh
     donasi: { bar: 'bg-teal-500', badge: 'bg-teal-100 text-teal-800', text: 'text-teal-700' },
     belanja: { bar: 'bg-purple-500', badge: 'bg-purple-100 text-purple-800', text: 'text-purple-700' },
     bensin: { bar: 'bg-rose-500', badge: 'bg-rose-100 text-rose-800', text: 'text-rose-700' },
+    tabungan: { bar: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-800', text: 'text-indigo-700' },
   };
 
   return (
@@ -59,7 +66,7 @@ export default function PersonalExpenseChart({ transactions }: PersonalExpenseCh
               Komposisi Pengeluaran Pribadi
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              Distribusi pengeluaran 6 kategori kebutuhan pribadi
+              Distribusi 7 kategori pengeluaran & tabungan pribadi
             </p>
           </div>
         </div>

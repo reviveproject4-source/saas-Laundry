@@ -46,7 +46,8 @@ export type PersonalCategory =
   | 'listrik_kuota'
   | 'donasi'
   | 'belanja'
-  | 'bensin';
+  | 'bensin'
+  | 'tabungan';
 
 export interface PersonalCategoryMeta {
   id: PersonalCategory;
@@ -61,6 +62,7 @@ export const PERSONAL_CATEGORIES: PersonalCategoryMeta[] = [
   { id: 'donasi', label: 'Donasi', icon: '🤲' },
   { id: 'belanja', label: 'Belanja', icon: '🛍️' },
   { id: 'bensin', label: 'Bensin', icon: '⛽' },
+  { id: 'tabungan', label: 'Tabungan', icon: '💰' },
 ];
 
 export interface Transaction {

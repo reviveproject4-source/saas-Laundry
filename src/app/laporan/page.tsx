@@ -130,7 +130,7 @@ export default function LaporanKeuanganPribadiPage() {
       tx.sub_category !== 'disetor_investor'
   );
 
-  // Aliran Dana Pribadi: Debit (Ambil Usaha) & Kredit (Belanja Pribadi)
+  // Aliran Dana Pribadi: Debit (Tarik Kas/ATM) & Kredit (Belanja Pribadi)
   const filteredPriveDebit = filteredPengeluaran.filter((tx) => tx.sub_category === 'penarikan_investor');
   const filteredPersonalCredit = filteredPengeluaran.filter((tx) => tx.sub_category === 'pengeluaran_pribadi');
 
@@ -147,7 +147,7 @@ export default function LaporanKeuanganPribadiPage() {
   const totalPriveDebit = filteredPriveDebit.reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
   const storeDirectSpent = filteredPriveDebit.filter((tx) => {
     const note = (tx.notes || '').toLowerCase();
-    return note.includes('belanja') || note.includes('qris') || !note.includes('tarik dana usaha ke kantong');
+    return (note.includes('belanja') || note.includes('qris') || note.includes('kasir toko')) && !note.includes('tarik');
   }).reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
 
   const independentPersonal = filteredPersonalCredit.reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
@@ -240,10 +240,10 @@ export default function LaporanKeuanganPribadiPage() {
             {/* Summary 4 Kartu Arus Kas Pribadi */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
-              {/* Kartu 1: DEBIT (Ambil Dana Usaha) */}
+              {/* Kartu 1: DEBIT (Uang Masuk Pribadi / Tarik ATM) */}
               <div className="bg-amber-50/70 p-5 rounded-2xl border-2 border-amber-200 shadow-2xs space-y-1">
                 <span className="text-xs font-black text-amber-900 uppercase block mb-1">
-                  1. Ambil Usaha (DEBIT)
+                  1. Uang Masuk / Tarik ATM (DEBIT)
                 </span>
                 <div className="text-2xl font-black text-amber-800">{formatRupiah(totalPriveDebit)}</div>
                 <div className="text-xs text-amber-900 font-semibold">{filteredPriveDebit.length} kali penarikan</div>
@@ -333,7 +333,7 @@ export default function LaporanKeuanganPribadiPage() {
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black border ${
                                   isDebit ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-purple-100 text-purple-900 border-purple-300'
                                 }`}>
-                                  {isDebit ? 'DEBIT (Ambil Usaha)' : 'KREDIT (Belanja Pribadi)'}
+                                  {isDebit ? 'DEBIT (Tarik Kas/ATM)' : 'KREDIT (Belanja Pribadi)'}
                                 </span>
                               </td>
                               <td className="py-3.5 px-4 whitespace-nowrap text-xs font-semibold text-slate-600">

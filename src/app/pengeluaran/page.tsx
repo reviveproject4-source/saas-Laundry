@@ -112,7 +112,7 @@ export default function PengeluaranPage() {
   // 3. Belanja Pribadi via QRIS / Toko
   const storeDirectSpentTxs = priveDebitTxs.filter((t) => {
     const note = (t.notes || '').toLowerCase();
-    return note.includes('belanja') || note.includes('qris') || !note.includes('tarik dana usaha ke kantong');
+    return (note.includes('belanja') || note.includes('qris') || note.includes('kasir toko')) && !note.includes('tarik');
   });
   const totalStoreDirectSpent = storeDirectSpentTxs.reduce((acc, t) => acc + Number(t.amount), 0);
 
@@ -159,14 +159,14 @@ export default function PengeluaranPage() {
                 className="flex items-center space-x-2 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
               >
                 <CreditCard className="w-4 h-4" />
-                <span>+ Belanja Pribadi (QRIS)</span>
+                <span>+ Belanja Pribadi</span>
               </button>
               <button
                 onClick={() => handleOpenModal('penarikan_investor')}
                 className="flex items-center space-x-2 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
               >
                 <ArrowDownLeft className="w-4 h-4" />
-                <span>+ Tarik Kas Toko</span>
+                <span>+ Tarik Kas/ATM (Debit)</span>
               </button>
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function PengeluaranPage() {
             {/* 3. Tarik Kas Toko ke Dompet Pribadi */}
             <div className="bg-amber-50/70 p-5 rounded-2xl border border-amber-300 shadow-sm space-y-1">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-black text-amber-900 uppercase">3. Ambil Dana Usaha</span>
+                <span className="text-xs font-black text-amber-900 uppercase">3. Uang Masuk / Tarik ATM</span>
                 <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
                   <ArrowDownLeft className="w-4 h-4" />
                 </div>
