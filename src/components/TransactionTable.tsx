@@ -162,7 +162,7 @@ export default function TransactionTable({
                         ) : isPriveTarik ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
                             <ArrowDownLeft className="w-3.5 h-3.5 mr-1 text-amber-700" />
-                            Tarik Kas Toko (Debit)
+                            Tarik Kas/ATM (Debit)
                           </span>
                         ) : tx.sub_category ? (
                           <span className="font-bold text-slate-800 text-xs sm:text-sm">
@@ -194,7 +194,7 @@ export default function TransactionTable({
                         ) : (
                           <>
                             <CreditCard className="w-3.5 h-3.5 text-sky-600" />
-                            <span>Transfer</span>
+                            <span>{tx.bank_account === 'rekening_reparasi' ? 'BCA Reparasi' : tx.bank_account === 'rekening_laundry' ? 'BCA Laundry' : 'Transfer Bank'}</span>
                           </>
                         )}
                       </span>
