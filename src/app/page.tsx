@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import TargetProgress from '@/components/TargetProgress';
 import RevenueChart from '@/components/RevenueChart';
@@ -187,7 +186,7 @@ export default function DashboardPage() {
   const storeMargin = totalStoreIncome - totalStoreOpsExpense;
   const storeMarginPercentage = totalStoreIncome > 0 ? ((storeMargin / totalStoreIncome) * 100).toFixed(1) : '0';
 
-  // D. Aliran Dana Pribadi Mami Lina & Pengurangan Akuntansi Riil
+  // D. Aliran Dana Pribadi & Pengurangan Akuntansi Riil
   // 1. DEBIT: Uang usaha yang ditarik untuk kantong pribadi / belanja langsung via QRIS/Toko
   const priveDebitTxs = transactions.filter((t) => t.sub_category === 'penarikan_investor');
   const totalPriveDebit = priveDebitTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
@@ -204,7 +203,7 @@ export default function DashboardPage() {
     .filter((t) => t.bank_account === 'rekening_reparasi' || (!t.bank_account && t.payment_method === 'transfer' && t.business_unit === 'reparasi'))
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // 2. KREDIT: Seluruh belanja pribadi Mami Lina
+  // 2. KREDIT: Seluruh belanja pribadi
   // Transaksi belanja langsung dari toko (QRIS / Belanja Toko)
   const storeDirectSpentTxs = priveDebitTxs.filter((t) => {
     const note = (t.notes || '').toLowerCase();
@@ -224,7 +223,7 @@ export default function DashboardPage() {
   // 3. Total Belanja Pribadi dari Dana Usaha (Yang Tidak Terasa)
   const totalStoreFundedPersonal = totalPriveDebit;
 
-  // 4. Sisa Saldo Dana Pribadi Mami Lina = DEBIT - KREDIT (Balance)
+  // 4. Sisa Saldo Dana Pribadi = DEBIT - KREDIT (Balance)
   const personalBalance = totalPriveDebit - totalPersonalCredit;
 
   // 5. Sisa Kas Riil Usaha Toko (Angka Real Akuntansi)
@@ -359,8 +358,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar userProfile={userProfile} tenantProfile={tenantProfile} />
-
       <div className="flex-1 max-w-7xl w-full mx-auto flex flex-col md:flex-row">
         <Sidebar />
 
@@ -383,18 +380,8 @@ export default function DashboardPage() {
           )}
 
           {/* Header & Quick Action Buttons */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Halaman Utama (Dashboard)</h2>
-                <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 uppercase">
-                  Mami Lina
-                </span>
-              </div>
-              <p className="text-sm font-semibold text-slate-600 mt-1">
-                Dompetku - Kelola Keuangan: Saas khusus tuk keuangan pemilik usaha.
-              </p>
-            </div>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Halaman Utama</h2>
 
             {/* Tombol Aksi Cepat */}
             <div className="flex flex-wrap items-center gap-2">
@@ -495,7 +482,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Kartu 4: Neraca Kas Pribadi Mami Lina */}
+            {/* Kartu 4: Neraca Kas Pribadi */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-3xl shadow-sm space-y-1.5 border border-slate-700">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-300">
@@ -866,7 +853,7 @@ export default function DashboardPage() {
           </div>
 
           {/* ========================================================= */}
-          {/* SEKSI 3: KEUANGAN PRIBADI MAMI LINA (LAPORAN TERPISAH) */}
+          {/* SEKSI 3: KEUANGAN PRIBADI (LAPORAN TERPISAH) */}
           {/* ========================================================= */}
           <div className="bg-gradient-to-br from-purple-50 via-white to-purple-50/50 p-6 sm:p-7 rounded-3xl border-2 border-purple-300 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-purple-100">
@@ -877,13 +864,12 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <h3 className="font-black text-purple-950 text-xl sm:text-2xl">
-                      Buku Kas Pribadi {userProfile?.full_name || "Pemilik"}
+                      Buku Kas Pribadi
                     </h3>
                     <span className="text-xs font-black px-3 py-1 rounded-full bg-purple-100 text-purple-900 border border-purple-300 uppercase">
                       SaaS Pribadi
                     </span>
                   </div>
-                  
                 </div>
               </div>
 
@@ -922,9 +908,6 @@ export default function DashboardPage() {
                 <div className="text-2xl sm:text-3xl font-black text-amber-700">
                   {formatRupiah(totalPriveDebit)}
                 </div>
-                <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  Total dana yang ditarik dari kas/bank usaha toko untuk modal kantong pribadi Mami Lina.
-                </p>
                 <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-700 space-y-0.5 font-semibold">
                   <div className="flex justify-between">
                     <span>• Dari Rek. Reparasi:</span>
@@ -955,11 +938,8 @@ export default function DashboardPage() {
                 <div className="text-2xl sm:text-3xl font-black text-purple-700">
                   {formatRupiah(totalPersonalCredit)}
                 </div>
-                <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  Total belanja untuk kebutuhan pribadi Mami Lina (dapur, pakaian, anak, uang saku).
-                </p>
                 <div className="pt-2 border-t border-slate-100 text-[11px] text-purple-800 font-bold">
-                  🔒 Tidak memotong dana toko & tidak memotong margin usaha toko.
+                  Belanja kebutuhan pribadi
                 </div>
               </div>
 
@@ -968,7 +948,7 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wide flex items-center">
                     <Wallet className="w-4 h-4 mr-1 text-purple-300" />
-                    3. Sisa Saldo Pribadi Mami
+                    3. Sisa Saldo Pribadi
                   </span>
                   <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
                     Siap Pakai
@@ -977,9 +957,6 @@ export default function DashboardPage() {
                 <div className="text-2xl sm:text-3xl font-black text-white">
                   {formatRupiah(personalBalance)}
                 </div>
-                <p className="text-xs text-purple-200 font-medium leading-relaxed">
-                  Sisa dana pribadi yang masih dipegang Mami Lina (Debit dikurangi Kredit belanja).
-                </p>
                 <div className="pt-2 border-t border-purple-500/40 text-[11px] text-purple-200 font-semibold flex justify-between">
                   <span>Rumus:</span>
                   <span>DEBIT ({formatRupiah(totalPriveDebit)}) - KREDIT ({formatRupiah(totalPersonalCredit)})</span>
@@ -988,12 +965,12 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* Riwayat Transaksi Pribadi Mami Lina (Debit & Kredit) */}
+            {/* Riwayat Transaksi Pribadi (Debit & Kredit) */}
             <div className="bg-white rounded-2xl border border-purple-200 overflow-hidden">
               <div className="p-4 bg-purple-50/70 border-b border-purple-100 flex justify-between items-center">
                 <span className="text-xs sm:text-sm font-black text-purple-950 uppercase tracking-wide flex items-center gap-1.5">
                   <Receipt className="w-4 h-4 text-purple-600" />
-                  <span>Riwayat Aliran Kas Pribadi Mami Lina</span>
+                  <span>Riwayat Aliran Kas Pribadi</span>
                 </span>
                 <span className="text-xs font-bold text-purple-800">
                   Total {priveDebitTxs.length + personalCreditTxs.length} Catatan Pribadi

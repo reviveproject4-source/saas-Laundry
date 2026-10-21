@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import TransactionTable from '@/components/TransactionTable';
 import TransactionModal from '@/components/TransactionModal';
@@ -10,7 +9,7 @@ import { Transaction, SubCategory, UserProfile, TenantProfile } from '@/lib/type
 import { getCurrentAuthUser } from '@/lib/auth';
 import { fetchTransactions, deleteTransactionFromSupabase } from '@/lib/transactions';
 import { formatRupiah } from '@/lib/formatters';
-import { PlusCircle, ArrowUpRight, ArrowDownLeft, ShoppingCart, User, Loader2, AlertTriangle, CreditCard, Banknote } from 'lucide-react';
+import { PlusCircle, ArrowUpRight, ArrowDownLeft, Loader2, AlertTriangle, CreditCard } from 'lucide-react';
 
 export default function PengeluaranPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -110,7 +109,7 @@ export default function PengeluaranPage() {
   const priveDebitTxs = allExpenseTxs.filter((t) => t.sub_category === 'penarikan_investor');
   const totalPriveDebit = priveDebitTxs.reduce((acc, t) => acc + Number(t.amount), 0);
 
-  // 3. Belanja Pribadi via QRIS / Toko (Yang Tidak Terasa)
+  // 3. Belanja Pribadi via QRIS / Toko
   const storeDirectSpentTxs = priveDebitTxs.filter((t) => {
     const note = (t.notes || '').toLowerCase();
     return note.includes('belanja') || note.includes('qris') || !note.includes('tarik dana usaha ke kantong');
@@ -126,8 +125,6 @@ export default function PengeluaranPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar userProfile={userProfile} tenantProfile={tenantProfile} />
-
       <div className="flex-1 max-w-7xl w-full mx-auto flex flex-col md:flex-row">
         <Sidebar />
 
@@ -146,32 +143,27 @@ export default function PengeluaranPage() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Menu Pengeluaran & Arus Kas</h2>
-              <p className="text-sm font-semibold text-slate-600 mt-1">
-                Pemisahan transparan: Biaya Usaha Toko vs Ambil Dana Usaha (Debit) vs Belanja Pribadi (Kredit).
-              </p>
-            </div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pengeluaran (Usaha)</h2>
 
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => handleOpenModal('operasional')}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
+                className="flex items-center space-x-2 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>+ Biaya Toko</span>
               </button>
               <button
                 onClick={() => handleOpenModal('pengeluaran_pribadi')}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
+                className="flex items-center space-x-2 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
               >
                 <CreditCard className="w-4 h-4" />
-                <span>+ Belanja Pribadi (QRIS/Toko)</span>
+                <span>+ Belanja Pribadi (QRIS)</span>
               </button>
               <button
                 onClick={() => handleOpenModal('penarikan_investor')}
-                className="flex items-center space-x-2 px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
+                className="flex items-center space-x-2 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
               >
                 <ArrowDownLeft className="w-4 h-4" />
                 <span>+ Tarik Kas Toko</span>
@@ -192,12 +184,9 @@ export default function PengeluaranPage() {
               </div>
               <div className="text-2xl font-black text-rose-700">{formatRupiah(totalStoreOps)}</div>
               <div className="text-xs text-slate-500 font-semibold">Bank: {formatRupiah(opsBank)} • Kasir: {formatRupiah(opsCash)}</div>
-              <div className="pt-1 text-[11px] text-rose-600 font-medium border-t border-slate-100">
-                Sewa, gaji, listrik, PAM, deterjen, sparepart.
-              </div>
             </div>
 
-            {/* 2. Belanja Pribadi via QRIS / Toko (Yang Tidak Terasa) */}
+            {/* 2. Belanja Pribadi via QRIS / Toko */}
             <div className="bg-purple-50/70 p-5 rounded-2xl border-2 border-purple-300 shadow-sm space-y-1">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs font-black text-purple-900 uppercase">2. Belanja Pribadi (QRIS)</span>
@@ -206,10 +195,7 @@ export default function PengeluaranPage() {
                 </div>
               </div>
               <div className="text-2xl font-black text-purple-800">{formatRupiah(totalStoreDirectSpent)}</div>
-              <div className="text-xs text-purple-900 font-semibold">Uang toko yang dipakai belanja QRIS</div>
-              <div className="pt-1 text-[11px] text-purple-800 font-medium border-t border-purple-200">
-                ⚡ Mengurangi kas riil usaha & balance di neraca pribadi.
-              </div>
+              <div className="text-xs text-purple-900 font-semibold">Uang toko dipakai belanja QRIS</div>
             </div>
 
             {/* 3. Tarik Kas Toko ke Dompet Pribadi */}
@@ -222,9 +208,6 @@ export default function PengeluaranPage() {
               </div>
               <div className="text-2xl font-black text-amber-800">{formatRupiah(totalPriveDebit)}</div>
               <div className="text-xs text-amber-900 font-semibold">{priveDebitTxs.length} kali penarikan ke pribadi</div>
-              <div className="pt-1 text-[11px] text-amber-800 font-medium border-t border-amber-200">
-                Total dana toko masuk ke kantong Mami Lina.
-              </div>
             </div>
 
             {/* 4. Sisa Saldo Pribadi */}
@@ -232,14 +215,11 @@ export default function PengeluaranPage() {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs font-black text-slate-300 uppercase">Neraca Kas Pribadi</span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300">
-                  Balance (Seimbang)
+                  Balance
                 </span>
               </div>
               <div className="text-2xl font-black text-emerald-400">{formatRupiah(Math.abs(personalBalance))}</div>
               <div className="text-xs text-slate-300 font-semibold">Debit: {formatRupiah(totalPriveDebit)} • Kredit: {formatRupiah(totalPersonalCredit)}</div>
-              <div className="pt-1 text-[11px] text-slate-400 font-medium border-t border-slate-700">
-                ⚖️ Seimbang otomatis berkat asas akuntansi berpasangan.
-              </div>
             </div>
 
           </div>
@@ -249,7 +229,7 @@ export default function PengeluaranPage() {
 
           {/* Expense Table */}
           <TransactionTable
-            title="Data Riwayat Seluruh Pengeluaran & Arus Kas"
+            title="Data Riwayat Seluruh Pengeluaran Usaha"
             transactions={allExpenseTxs}
             userProfile={userProfile}
             onDeleteTransaction={handleDeleteTransaction}

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import TransactionTable from '@/components/TransactionTable';
 import TransactionModal from '@/components/TransactionModal';
@@ -74,7 +73,7 @@ export default function PenerimaanPage() {
       <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
         <div className="flex flex-col items-center space-y-3 bg-white p-8 rounded-3xl shadow-xl">
           <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-          <span className="text-xs font-bold text-slate-700">Memuat data penerimaan...</span>
+          <span className="text-xs font-bold text-slate-700">Memuat data pemasukkan...</span>
         </div>
       </div>
     );
@@ -108,8 +107,6 @@ export default function PenerimaanPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar userProfile={userProfile} tenantProfile={tenantProfile} />
-
       <div className="flex-1 max-w-7xl w-full mx-auto flex flex-col md:flex-row">
         <Sidebar />
 
@@ -128,20 +125,15 @@ export default function PenerimaanPage() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Menu Penerimaan Uang</h2>
-              <p className="text-sm font-semibold text-slate-600 mt-1">
-                Pencatatan uang masuk: Transfer Rekening Bank & Kas Tunai Toko.
-              </p>
-            </div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pemasukkan (Usaha)</h2>
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition active:scale-95"
+              className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>+ Input Penerimaan</span>
+              <span>+ Input Pemasukkan</span>
             </button>
           </div>
 
@@ -156,7 +148,7 @@ export default function PenerimaanPage() {
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-sky-900">{formatRupiah(totalTransferLaundry)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-sky-800 mt-1">Transfer Bank (Pemilik)</div>
+              <div className="text-xs font-semibold text-sky-800 mt-1">Transfer Bank</div>
             </div>
 
             {/* Rekening Reparasi */}
@@ -168,7 +160,7 @@ export default function PenerimaanPage() {
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-purple-900">{formatRupiah(totalTransferReparasi)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-purple-800 mt-1">Transfer Bank (Pemilik)</div>
+              <div className="text-xs font-semibold text-purple-800 mt-1">Transfer Bank</div>
             </div>
 
             {/* Kasir Tunai Toko */}
@@ -180,25 +172,25 @@ export default function PenerimaanPage() {
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-emerald-950">{formatRupiah(totalCash)}</div>
-              <div className="text-xs sm:text-sm font-semibold text-emerald-800 mt-1">Uang Kasir Tunai Toko</div>
+              <div className="text-xs font-semibold text-emerald-800 mt-1">Uang Kasir Toko</div>
             </div>
 
             {/* Total Seluruh Penerimaan */}
             <div className="bg-white p-5 rounded-2xl border-2 border-slate-300 shadow-sm">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs sm:text-sm font-extrabold text-slate-700 uppercase">Total Uang Masuk</span>
+                <span className="text-xs sm:text-sm font-extrabold text-slate-700 uppercase">Total Pemasukkan</span>
                 <div className="p-2 bg-slate-100 text-slate-700 rounded-xl">
                   <ArrowDownLeft className="w-5 h-5" />
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900">{formatRupiah(totalIncome)}</div>
-              <div className="text-xs sm:text-sm font-bold text-slate-600 mt-1">Bank ({formatRupiah(totalTransfer)}) + Cash</div>
+              <div className="text-xs font-bold text-slate-600 mt-1">Bank ({formatRupiah(totalTransfer)}) + Cash</div>
             </div>
           </div>
 
           {/* Income Table */}
           <TransactionTable
-            title="Data Penerimaan Uang (Cash & Transfer)"
+            title="Data Pemasukkan Usaha (Cash & Transfer)"
             transactions={incomeTxs}
             userProfile={userProfile}
             onDeleteTransaction={handleDeleteTransaction}

@@ -110,7 +110,7 @@ export async function upsertDailyOmzet(
             omzet_reparasi: payload.omzet_reparasi,
             notes: payload.notes || null,
             created_by_user_id: '78f4d2b3-befa-460c-bfdc-1aaefd67802a',
-            creator_name: payload.creator_name || 'Pemilik (Mami Lina)',
+            creator_name: payload.creator_name || 'Pemilik',
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'tenant_id,date' }

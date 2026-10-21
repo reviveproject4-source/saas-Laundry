@@ -119,7 +119,7 @@ export default function TransactionTable({
                         {tx.creator_role === 'investor' ? (
                           <>
                             <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
-                            {tx.creator_name || 'Pemilik Mami Lina'}
+                            {tx.creator_name || 'Pemilik'}
                           </>
                         ) : (
                           <>

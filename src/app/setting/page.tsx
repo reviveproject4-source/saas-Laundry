@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import { UserProfile, TenantProfile } from '@/lib/types';
 import { getCurrentAuthUser, signOutUser } from '@/lib/auth';
@@ -100,19 +99,12 @@ export default function SettingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar userProfile={userProfile} tenantProfile={tenant} />
-
       <div className="flex-1 max-w-7xl w-full mx-auto flex flex-col md:flex-row">
         <Sidebar />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
           
-          <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menu Pengaturan</h2>
-            <p className="text-xs text-slate-500">
-              Kelola profil outlet laundry dan informasi akun pengguna.
-            </p>
-          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">Setting</h2>
 
           <div className="max-w-2xl space-y-6">
             
@@ -130,15 +122,15 @@ export default function SettingPage() {
                 <div className="w-12 h-12 bg-white rounded-xl border border-slate-200 p-1 flex justify-center items-center shrink-0">
                   <img
                     src="/dompetku-logo.jpg"
-                    alt="Trio R Logo"
+                    alt="Logo"
                     width={44}
                     height={44}
                     style={{ maxWidth: '44px', maxHeight: '44px', width: 'auto', height: 'auto', objectFit: 'contain' }}
                   />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 text-base">Profil {tenant?.name || 'Outlet Laundry'}</h3>
-                  <p className="text-xs text-slate-500 font-medium">Informasi identitas cabang dan operasional outlet</p>
+                  <h3 className="font-bold text-slate-800 text-base">Profil {tenant?.name || 'Usaha'}</h3>
+                  <span className="text-xs text-slate-400 font-medium">Multi-Tenant Outlet</span>
                 </div>
               </div>
 
@@ -150,7 +142,7 @@ export default function SettingPage() {
 
               <form onSubmit={handleSaveOutlet} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Nama Outlet Laundry</label>
+                  <label className="block font-semibold text-slate-600 mb-1">Nama Usaha / Outlet</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -191,12 +183,6 @@ export default function SettingPage() {
                   </div>
                 </div>
 
-                {/* Target Setoran Tetap Note */}
-                <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 text-slate-600">
-                  <span className="font-semibold block mb-0.5">Target Setoran Investor</span>
-                  <span>Dikunci otomatis di <strong>Rp 10.000.000 / bulan</strong> (Business Rule).</span>
-                </div>
-
                 <button
                   type="submit"
                   disabled={submitting}
@@ -220,8 +206,8 @@ export default function SettingPage() {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 text-base">Status Akun Logged In</h3>
-                  <p className="text-xs text-slate-500">Nama: <strong className="text-slate-700">{userProfile?.full_name}</strong> | Role: <strong className="uppercase text-slate-700">{currentRole}</strong></p>
+                  <h3 className="font-bold text-slate-800 text-base">Akun Pengguna</h3>
+                  <p className="text-xs text-slate-500">Nama: <strong className="text-slate-700">{userProfile?.full_name || 'Pemilik'}</strong> | Role: <strong className="uppercase text-slate-700">{currentRole === 'investor' ? 'Pemilik' : currentRole}</strong></p>
                 </div>
               </div>
 
@@ -231,7 +217,7 @@ export default function SettingPage() {
                   className="flex items-center space-x-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs rounded-xl shadow-xs transition"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Log-out (Keluar Sesi Supabase)</span>
+                  <span>Keluar (Log-out)</span>
                 </button>
               </div>
             </div>
@@ -243,4 +229,3 @@ export default function SettingPage() {
     </div>
   );
 }
-

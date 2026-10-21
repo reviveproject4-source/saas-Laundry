@@ -3,17 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Wallet, Settings } from 'lucide-react';
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   const menuItems = [
-    { label: 'Utama', href: '/', icon: LayoutDashboard },
-    { label: 'Penerimaan', href: '/penerimaan', icon: ArrowDownLeft },
-    { label: 'Pengeluaran', href: '/pengeluaran', icon: ArrowUpRight },
-    { label: 'Laporan', href: '/laporan', icon: BarChart3 },
-    { label: 'Setting', href: '/setting', icon: Settings },
+    { label: 'Utama', sub: '', href: '/', icon: LayoutDashboard },
+    { label: 'Pemasukkan', sub: '(Usaha)', href: '/penerimaan', icon: ArrowDownLeft },
+    { label: 'Pengeluaran', sub: '(Usaha)', href: '/pengeluaran', icon: ArrowUpRight },
+    { label: 'Lap. Pribadi', sub: '', href: '/laporan', icon: Wallet },
+    { label: 'Setting', sub: '', href: '/setting', icon: Settings },
   ];
 
   return (
@@ -26,14 +26,19 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center w-full py-1.5 transition active:scale-90 ${
+              className={`flex flex-col items-center justify-center w-full py-1 transition active:scale-95 ${
                 isActive ? 'text-sky-600 font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'
               }`}
             >
               <div className={`p-1 rounded-xl transition ${isActive ? 'bg-sky-50' : ''}`}>
                 <Icon className={`w-5 h-5 ${isActive ? 'text-sky-600' : 'text-slate-400'}`} />
               </div>
-              <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
+              <span className="text-[10px] leading-tight mt-0.5 tracking-tight text-center">{item.label}</span>
+              {item.sub && (
+                <span className={`text-[8px] leading-none ${isActive ? 'text-sky-600 font-bold' : 'text-slate-400'}`}>
+                  {item.sub}
+                </span>
+              )}
             </Link>
           );
         })}
