@@ -8,6 +8,8 @@ import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Wallet, Settings } from '
 export default function BottomNav() {
   const pathname = usePathname();
 
+  if (pathname === '/login') return null;
+
   const menuItems = [
     { label: 'Utama', sub: '', href: '/', icon: LayoutDashboard },
     { label: 'Pemasukkan', sub: '(Usaha)', href: '/penerimaan', icon: ArrowDownLeft },
