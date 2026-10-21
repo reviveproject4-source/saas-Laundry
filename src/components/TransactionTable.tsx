@@ -3,20 +3,34 @@
 import React from 'react';
 import { Transaction, UserProfile, UserRole } from '@/lib/types';
 import { formatRupiah, formatDateIndo, getCategoryLabel } from '@/lib/formatters';
-import { Lock, Trash2, Banknote, CreditCard, UserCheck, ShieldCheck, User, ArrowDownLeft, ShoppingCart } from 'lucide-react';
+import { 
+  ArrowDownLeft, 
+  ArrowUpRight, 
+  Trash2, 
+  Lock, 
+  CreditCard, 
+  Banknote, 
+  Building2, 
+  Wrench, 
+  ShieldCheck, 
+  UserCheck, 
+  User, 
+  ShoppingCart,
+  QrCode
+} from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: Transaction[];
   userProfile?: UserProfile | null;
   currentRole?: UserRole;
-  onDeleteTransaction: (id: string) => void;
+  onDeleteTransaction?: (id: string) => void;
   title?: string;
 }
 
 export default function TransactionTable({
   transactions,
   userProfile,
-  currentRole,
+  currentRole = 'investor',
   onDeleteTransaction,
   title = 'Riwayat Transaksi Harian',
 }: TransactionTableProps) {
@@ -50,10 +64,10 @@ export default function TransactionTable({
               <th className="py-3.5 px-4 text-center">Aksi (Lock)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
+          <tbody className="divide-y divide-slate-100">
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-slate-500 font-semibold text-sm">
+                <td colSpan={7} className="text-center py-10 text-slate-400 font-bold text-sm">
                   Belum ada riwayat transaksi yang tercatat.
                 </td>
               </tr>
@@ -67,6 +81,10 @@ export default function TransactionTable({
                 const isPriveTarik = tx.sub_category === 'penarikan_investor';
                 const isBelanjaPribadi = tx.sub_category === 'pengeluaran_pribadi';
                 const isSetoran = tx.sub_category === 'disetor_investor';
+                const isQRISBelanja = isPriveTarik && (
+                  (tx.notes || '').toLowerCase().includes('belanja') ||
+                  (tx.notes || '').toLowerCase().includes('qris')
+                );
 
                 return (
                   <tr key={tx.id} className="hover:bg-slate-50 transition">
@@ -122,10 +140,15 @@ export default function TransactionTable({
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
                             ⭐ Setoran Target Investor
                           </span>
+                        ) : isQRISBelanja ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-purple-100 text-purple-950 border border-purple-400 shadow-2xs">
+                            <CreditCard className="w-3.5 h-3.5 mr-1 text-purple-700" />
+                            Belanja Pribadi (QRIS / Toko)
+                          </span>
                         ) : isPriveTarik ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
                             <ArrowDownLeft className="w-3.5 h-3.5 mr-1 text-amber-700" />
-                            Ambil Dana Usaha (Debit)
+                            Tarik Kas Toko (Debit)
                           </span>
                         ) : isBelanjaPribadi ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-black bg-purple-100 text-purple-950 border border-purple-400 shadow-2xs">
@@ -144,7 +167,12 @@ export default function TransactionTable({
                     {/* Payment Method */}
                     <td className="py-4 px-4 whitespace-nowrap">
                       <span className="inline-flex items-center space-x-1.5 bg-slate-100 text-slate-800 font-semibold px-2.5 py-1 rounded text-xs">
-                        {isBelanjaPribadi ? (
+                        {isQRISBelanja ? (
+                          <>
+                            <CreditCard className="w-3.5 h-3.5 text-purple-600" />
+                            <span>QRIS / Bank Toko</span>
+                          </>
+                        ) : isBelanjaPribadi ? (
                           <>
                             <User className="w-3.5 h-3.5 text-purple-600" />
                             <span>Kantong Pribadi</span>
@@ -169,6 +197,8 @@ export default function TransactionTable({
                         className={`font-bold px-2.5 py-1 rounded text-xs ${
                           isIncome
                             ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                            : isQRISBelanja
+                            ? 'bg-purple-100 text-purple-900 border border-purple-300 font-black'
                             : isPriveTarik
                             ? 'bg-amber-100 text-amber-900 border border-amber-300'
                             : isBelanjaPribadi
@@ -178,6 +208,8 @@ export default function TransactionTable({
                       >
                         {isIncome
                           ? 'Penerimaan Usaha'
+                          : isQRISBelanja
+                          ? 'QRIS Belanja (Balance 2 Sisi)'
                           : isPriveTarik
                           ? 'Debit Pribadi (Tarik Usaha)'
                           : isBelanjaPribadi
@@ -191,6 +223,8 @@ export default function TransactionTable({
                       className={`py-4 px-4 text-right font-black text-base whitespace-nowrap ${
                         isIncome
                           ? 'text-emerald-700'
+                          : isQRISBelanja
+                          ? 'text-purple-700'
                           : isPriveTarik
                           ? 'text-amber-700'
                           : isBelanjaPribadi
@@ -198,27 +232,26 @@ export default function TransactionTable({
                           : 'text-rose-700'
                       }`}
                     >
-                      {isIncome ? '+' : '-'} {formatRupiah(tx.amount)}
+                      {isIncome ? `+${formatRupiah(tx.amount)}` : `-${formatRupiah(tx.amount)}`}
                     </td>
 
-                    {/* Action with Lock logic */}
+                    {/* Actions / Lock status */}
                     <td className="py-4 px-4 text-center whitespace-nowrap">
-                      {isEditable ? (
+                      {isEditable && onDeleteTransaction ? (
                         <button
                           onClick={() => onDeleteTransaction(tx.id)}
-                          className="p-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-xl transition"
-                          title="Hapus data transaksi ini"
+                          title="Hapus transaksi"
+                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       ) : (
-                        <div
-                          className="inline-flex items-center space-x-1.5 text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg cursor-not-allowed text-xs"
-                          title={`Terkunci. Diinput oleh ${tx.creator_name} (${tx.creator_role}). Hanya pembuat yang dapat menghapus.`}
+                        <span
+                          title="Terkunci: Dibuat oleh pemilik"
+                          className="inline-flex items-center text-slate-400 cursor-not-allowed"
                         >
-                          <Lock className="w-3.5 h-3.5 text-amber-600" />
-                          <span className="font-bold text-slate-600">Terkunci</span>
-                        </div>
+                          <Lock className="w-4 h-4" />
+                        </span>
                       )}
                     </td>
 

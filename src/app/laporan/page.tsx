@@ -228,8 +228,15 @@ export default function RingkasanPencatatanPage() {
   // 5. KALKULASI TOTAL KELOMPOK 4: ARUS KAS PRIBADI MAMI LINA
   // =========================================================================
   const totalPriveDebit = filteredPriveDebit.reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
-  const totalPersonalCredit = filteredPersonalCredit.reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
+  const storeDirectSpent = filteredPriveDebit.filter((tx) => {
+    const note = (tx.notes || '').toLowerCase();
+    return note.includes('belanja') || note.includes('qris') || !note.includes('tarik dana usaha ke kantong');
+  }).reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
+
+  const independentPersonal = filteredPersonalCredit.reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
+  const totalPersonalCredit = storeDirectSpent + independentPersonal;
   const personalBalance = totalPriveDebit - totalPersonalCredit;
+  const realNetStoreCash = storeMargin - totalPriveDebit;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -742,14 +749,23 @@ export default function RingkasanPencatatanPage() {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-800 to-slate-900 text-white p-5 rounded-2xl shadow-2xs space-y-1">
-                <span className="text-xs font-black text-purple-200 uppercase block mb-1">
-                  3. Sisa Saldo Pribadi
-                </span>
-                <div className="text-2xl font-black text-emerald-400">{formatRupiah(personalBalance)}</div>
-                <div className="text-xs text-purple-200 font-semibold">Uang pribadi yang masih siap pakai</div>
-                <p className="text-[11px] text-purple-300 pt-1 font-medium border-t border-purple-600">
-                  DEBIT ({formatRupiah(totalPriveDebit)}) - KREDIT ({formatRupiah(totalPersonalCredit)})
+              <div className="bg-gradient-to-br from-slate-900 to-purple-950 text-white p-5 rounded-2xl shadow-2xs space-y-1">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-black text-purple-200 uppercase block">
+                    3. Neraca Kas Pribadi
+                  </span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300">
+                    Balance
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-emerald-400">
+                  {personalBalance === 0 ? 'Rp 0 (Balance)' : formatRupiah(Math.abs(personalBalance))}
+                </div>
+                <div className="text-xs text-purple-200 font-semibold">
+                  {personalBalance === 0 ? '✓ Seimbang otomatis (Asas Berpasangan)' : 'Selisih Kas Pribadi'}
+                </div>
+                <p className="text-[11px] text-purple-300 pt-1 font-medium border-t border-purple-800">
+                  DEBIT ({formatRupiah(totalPriveDebit)}) vs KREDIT ({formatRupiah(totalPersonalCredit)})
                 </p>
               </div>
             </div>

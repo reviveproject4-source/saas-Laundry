@@ -186,8 +186,8 @@ export default function DashboardPage() {
   const storeMargin = totalStoreIncome - totalStoreOpsExpense;
   const storeMarginPercentage = totalStoreIncome > 0 ? ((storeMargin / totalStoreIncome) * 100).toFixed(1) : '0';
 
-  // D. Aliran Dana Pribadi Mami Lina (Laporan Terpisah)
-  // 1. DEBIT: Uang usaha yang ditarik untuk kantong pribadi Mami Lina
+  // D. Aliran Dana Pribadi Mami Lina & Pengurangan Akuntansi Riil
+  // 1. DEBIT: Uang usaha yang ditarik untuk kantong pribadi / belanja langsung via QRIS/Toko
   const priveDebitTxs = transactions.filter((t) => t.sub_category === 'penarikan_investor');
   const totalPriveDebit = priveDebitTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
@@ -203,12 +203,31 @@ export default function DashboardPage() {
     .filter((t) => t.bank_account === 'rekening_reparasi' || (!t.bank_account && t.payment_method === 'transfer' && t.business_unit === 'reparasi'))
     .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // 2. KREDIT: Belanja / pengeluaran untuk keperluan pribadi Mami Lina
-  const personalCreditTxs = transactions.filter((t) => t.sub_category === 'pengeluaran_pribadi');
-  const totalPersonalCredit = personalCreditTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  // 2. KREDIT: Seluruh belanja pribadi Mami Lina
+  // Transaksi belanja langsung dari toko (QRIS / Belanja Toko)
+  const storeDirectSpentTxs = priveDebitTxs.filter((t) => {
+    const note = (t.notes || '').toLowerCase();
+    return note.includes('belanja') || note.includes('qris') || !note.includes('tarik dana usaha ke kantong');
+  });
+  const totalStoreDirectSpent = storeDirectSpentTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-  // 3. Sisa Saldo Dana Pribadi Mami Lina = DEBIT - KREDIT
+  // Transaksi belanja mandiri di luar toko
+  const independentPersonalTxs = transactions.filter(
+    (t) => t.type === 'pengeluaran' && t.sub_category === 'pengeluaran_pribadi' && !t.bank_account && t.business_unit === 'pribadi'
+  );
+  const totalIndependentPersonal = independentPersonalTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+  const personalCreditTxs = [...storeDirectSpentTxs, ...independentPersonalTxs];
+  const totalPersonalCredit = totalStoreDirectSpent + totalIndependentPersonal;
+
+  // 3. Total Belanja Pribadi dari Dana Usaha (Yang Tidak Terasa)
+  const totalStoreFundedPersonal = totalPriveDebit;
+
+  // 4. Sisa Saldo Dana Pribadi Mami Lina = DEBIT - KREDIT (Balance)
   const personalBalance = totalPriveDebit - totalPersonalCredit;
+
+  // 5. Sisa Kas Riil Usaha Toko (Angka Real Akuntansi)
+  const realNetStoreCash = storeMargin - totalStoreFundedPersonal;
 
   // =========================================================================
   // 2. DETAIL TIGA DOMPET USAHA (REK LAUNDRY, REK REPARASI, KASIR TOKO)
@@ -400,18 +419,18 @@ export default function DashboardPage() {
                 <span>+ Biaya Toko</span>
               </button>
               <button
+                onClick={() => handleOpenTransactionModal('pengeluaran', 'pengeluaran_pribadi')}
+                className="flex items-center space-x-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs transition active:scale-95"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>+ Belanja Pribadi (QRIS/Toko)</span>
+              </button>
+              <button
                 onClick={() => handleOpenTransactionModal('pengeluaran', 'penarikan_investor')}
                 className="flex items-center space-x-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-xs transition active:scale-95"
               >
                 <ArrowDownLeft className="w-4 h-4" />
-                <span>+ Ambil Usaha (Debit)</span>
-              </button>
-              <button
-                onClick={() => handleOpenTransactionModal('pengeluaran', 'pengeluaran_pribadi')}
-                className="flex items-center space-x-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs transition active:scale-95"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span>+ Belanja Pribadi (Kredit)</span>
+                <span>+ Tarik Kas Toko</span>
               </button>
             </div>
           </div>
@@ -421,90 +440,125 @@ export default function DashboardPage() {
           {/* ========================================================= */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            {/* Kartu 1: Margin Usaha Bersih Toko */}
+            {/* Kartu 1: Laba Operasional Toko */}
             <div className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-5 rounded-2xl shadow-sm space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-black uppercase tracking-wider text-emerald-100">
-                  Margin Usaha (Laba Toko)
+                  Laba Operasional Toko
                 </span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
-                  {storeMarginPercentage}% Margin
+                  {storeMarginPercentage}% Laba
                 </span>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-white">
                 {formatRupiah(storeMargin)}
               </div>
               <div className="text-xs text-emerald-100 font-medium">
-                Penerimaan: {formatRupiah(totalStoreIncome)} - Biaya: {formatRupiah(totalStoreOpsExpense)}
+                Omzet: {formatRupiah(totalStoreIncome)} - Biaya: {formatRupiah(totalStoreOpsExpense)}
               </div>
               <div className="pt-1 text-[11px] text-emerald-200 font-semibold border-t border-emerald-500/40">
-                ✨ Murni laba usaha, tidak terpotong dana pribadi.
+                🏢 Performa murni efisiensi bisnis toko laundry & reparasi.
               </div>
             </div>
 
-            {/* Kartu 2: Ambil Dana Usaha tuk Pribadi (Debit) */}
-            <div className="bg-gradient-to-br from-amber-600 to-amber-800 text-white p-5 rounded-2xl shadow-sm space-y-2">
+            {/* Kartu 2: Belanja Pribadi / QRIS Toko (Yang Tidak Terasa) */}
+            <div className="bg-gradient-to-br from-purple-700 to-indigo-900 text-white p-5 rounded-2xl shadow-sm space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-black uppercase tracking-wider text-amber-100">
-                  Ambil Dana Usaha (Debit)
+                <span className="text-xs font-black uppercase tracking-wider text-purple-200">
+                  Belanja Pribadi (QRIS/Toko)
                 </span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
-                  {priveDebitTxs.length}x Tarik
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-500/40 text-purple-200 border border-purple-400/30">
+                  Yang Tidak Terasa
                 </span>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-white">
-                {formatRupiah(totalPriveDebit)}
+                {formatRupiah(totalStoreFundedPersonal)}
               </div>
-              <div className="text-xs text-amber-100 font-medium">
-                Uang masuk ke kantong Mami Lina dari kas/bank toko.
+              <div className="text-xs text-purple-200 font-medium">
+                🔻 Pengurang Laba Toko (Prive Belanja Pribadi)
               </div>
-              <div className="pt-1 text-[11px] text-amber-200 font-semibold border-t border-amber-500/40">
+              <div className="pt-1 text-[11px] text-purple-300 font-semibold border-t border-purple-500/40">
                 Laundry: {formatRupiah(priveDebitRekLaundry)} • Rep: {formatRupiah(priveDebitRekReparasi)} • Cash: {formatRupiah(priveDebitCash)}
               </div>
             </div>
 
-            {/* Kartu 3: Pengeluaran Belanja Pribadi (Kredit) */}
-            <div className="bg-gradient-to-br from-purple-600 to-indigo-800 text-white p-5 rounded-2xl shadow-sm space-y-2">
+            {/* Kartu 3: Sisa Kas Riil Usaha Toko (Angka Real Nyata) */}
+            <div className="bg-gradient-to-br from-sky-600 to-blue-800 text-white p-5 rounded-2xl shadow-sm space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-black uppercase tracking-wider text-purple-100">
-                  Belanja Pribadi (Kredit)
+                <span className="text-xs font-black uppercase tracking-wider text-sky-100">
+                  Sisa Kas Riil Toko
                 </span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white">
-                  {personalCreditTxs.length}x Belanja
+                  Angka Real
                 </span>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-white">
-                {formatRupiah(totalPersonalCredit)}
+                {formatRupiah(realNetStoreCash)}
               </div>
-              <div className="text-xs text-purple-100 font-medium">
-                Pengeluaran kebutuhan pribadi Mami Lina.
+              <div className="text-xs text-sky-100 font-medium">
+                Laba Toko ({formatRupiah(storeMargin)}) - Belanja Pribadi ({formatRupiah(totalStoreFundedPersonal)})
               </div>
-              <div className="pt-1 text-[11px] text-purple-200 font-semibold border-t border-purple-500/40">
-                🔒 0% memotong usaha (hanya memotong saldo pribadi).
+              <div className="pt-1 text-[11px] text-sky-200 font-semibold border-t border-sky-500/40">
+                💎 Saldo aktual yang benar-benar tersisa di bank & kasir toko.
               </div>
             </div>
 
-            {/* Kartu 4: Sisa Saldo Dana Pribadi Mami */}
+            {/* Kartu 4: Neraca Kas Pribadi Mami Lina (Balance 2 Sisi) */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-2xl shadow-sm space-y-2 border border-slate-700">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-300">
-                  Sisa Saldo Pribadi Mami
+                  Neraca Pribadi Mami Lina
                 </span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 border border-emerald-400/40">
-                  Kantong Pribadi
+                  Balance (Seimbang)
                 </span>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-emerald-400">
-                {formatRupiah(personalBalance)}
+                {formatRupiah(Math.abs(personalBalance))}
               </div>
               <div className="text-xs text-slate-300 font-medium">
-                Debit ({formatRupiah(totalPriveDebit)}) - Kredit ({formatRupiah(totalPersonalCredit)})
+                Debit Ambil: {formatRupiah(totalPriveDebit)} • Kredit Belanja: {formatRupiah(totalPersonalCredit)}
               </div>
               <div className="pt-1 text-[11px] text-slate-400 font-semibold border-t border-slate-700">
-                Uang di tangan pribadi Mami yang masih siap pakai.
+                ⚖️ Asas Akuntansi Berpasangan: Seimbang Otomatis!
               </div>
             </div>
 
+          </div>
+
+          {/* BANNER REAL AKUNTANSI: PERSAMAAN DASAR DANA USAHA & PRIBADI */}
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-xs font-bold text-slate-600">
+              <span className="flex items-center space-x-1.5 text-blue-950 font-black">
+                <CreditCard className="w-4 h-4 text-purple-600" />
+                <span>Prinsip Akuntansi Nyata: Aliran Dana Usaha vs Belanja Pribadi QRIS</span>
+              </span>
+              <span className="text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                Sinkron 100% dengan Mutasi m-BCA
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-center pt-1">
+              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <div className="text-[10px] font-bold text-slate-500 uppercase">1. Omzet Usaha</div>
+                <div className="text-sm font-black text-slate-900">{formatRupiah(totalStoreIncome)}</div>
+              </div>
+              <div className="bg-rose-50 p-2.5 rounded-xl border border-rose-100">
+                <div className="text-[10px] font-bold text-rose-600 uppercase">2. Biaya Toko (-)</div>
+                <div className="text-sm font-black text-rose-700">{formatRupiah(totalStoreOpsExpense)}</div>
+              </div>
+              <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+                <div className="text-[10px] font-bold text-emerald-700 uppercase">3. Laba Operasi Toko</div>
+                <div className="text-sm font-black text-emerald-800">{formatRupiah(storeMargin)}</div>
+              </div>
+              <div className="bg-purple-50 p-2.5 rounded-xl border border-purple-200">
+                <div className="text-[10px] font-bold text-purple-700 uppercase">4. Belanja QRIS / Toko (-)</div>
+                <div className="text-sm font-black text-purple-800">{formatRupiah(totalStoreFundedPersonal)}</div>
+              </div>
+              <div className="bg-sky-50 p-2.5 rounded-xl border-2 border-sky-300">
+                <div className="text-[10px] font-black text-sky-800 uppercase">5. Sisa Kas Riil Toko</div>
+                <div className="text-sm font-black text-sky-900">{formatRupiah(realNetStoreCash)}</div>
+              </div>
+            </div>
           </div>
 
           {/* ========================================================= */}
